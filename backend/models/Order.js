@@ -1,4 +1,3 @@
-dminA// models/Order.js
 const mongoose = require("mongoose");
 
 const OrderSchema = new mongoose.Schema({
@@ -10,7 +9,7 @@ const OrderSchema = new mongoose.Schema({
     unitPrice: Number
   }],
   subtotal: Number,
-  proofOfPayment: String, // file upload (URL)
+  proofOfPayment: String, // Receipt Image URL?
   paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
   status: { type: String, enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"], default: "pending" },
   trackingNumber: String,

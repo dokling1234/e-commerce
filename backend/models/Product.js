@@ -9,7 +9,7 @@ const ProductSchema = new mongoose.Schema({
   quantity: { type: Number, default: 1 },
   donor: String,
   image: String,
-  perceivedValue: { type: Number, default: 0.5 },
+  perceivedValue: { type: Number, default: 0.5 }, //value
   impact: {
     meals: { type: Number, default: 0 },
     scholarships: { type: Number, default: 0 },
