@@ -11,7 +11,7 @@ const OrderSchema = new mongoose.Schema({
   subtotal: Number,
   proofOfPayment: String, // Receipt Image URL?
   paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
-  status: { type: String, enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"], default: "pending" },
+  status: { type: String, enum: ["pending", "to receive", "received", "cancelled"], default: "pending" },
   trackingNumber: String,
   impact: {
     meals: { type: Number, default: 0 },
