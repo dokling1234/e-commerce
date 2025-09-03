@@ -8,12 +8,12 @@ connectDB(); //
 const app = express();
 app.use(express.json());
 
-// Example test route
 app.get("/", (req, res) => {
-  res.send("E-Commerce API is running...");
+  res.send("E-Commerce API is running.");
 });
 
-// Import routes
+
+//routes
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const productRoutes = require("./routes/productRoutes");
 

@@ -1,6 +1,7 @@
-// routes/adminAuthRoutes.js
 const router = require("express").Router();
-const { login } = require("../controllers/AdminAuthController");
+const { registerAdmin, login } = require("../controllers/AdminAuthController");
+
+router.post("/register", registerAdmin);
 
 router.post("/login", login);
 
