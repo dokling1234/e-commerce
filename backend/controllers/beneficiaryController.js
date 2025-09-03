@@ -3,10 +3,10 @@ const Beneficiary = require("../models/beneficiary");
 // Add Beneficiary
 const addBeneficiary = async (req, res) => {
   try {
-    const { name, status } = req.body;
+    const { name, status, age } = req.body;
 
-    if (!name) {
-      return res.status(400).json({ message: "Name is required" });
+    if (!name || !age) {
+      return res.status(400).json({ message: "Name and age are required" });
     }
 
     // Check if beneficiary already exists
@@ -17,6 +17,7 @@ const addBeneficiary = async (req, res) => {
 
     const newBeneficiary = new Beneficiary({
       name: name.trim(),
+      age,
       status: status || "active"
     });
 
@@ -27,6 +28,8 @@ const addBeneficiary = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
 const updateBeneficiaryStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -50,4 +53,13 @@ const updateBeneficiaryStatus = async (req, res) => {
   }
 };
 
-module.exports = { addBeneficiary, updateBeneficiaryStatus  };
+const getAllBeneficiaries = async (req, res) => {
+  try {
+    const beneficiaries = await Beneficiary.find().sort({ createdAt: -1 }); // latest first
+    res.json({ message: "All beneficiaries", beneficiaries });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+module.exports = { addBeneficiary, updateBeneficiaryStatus, getAllBeneficiaries };

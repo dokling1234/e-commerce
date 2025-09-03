@@ -6,7 +6,7 @@ const registerAdmin = async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
-    // Check if user exists
+    // Check if existing
     const existing = await AdminUser.findOne({ username });
     if (existing) {
       return res.status(400).json({ message: "Username already taken" });
@@ -44,4 +44,13 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { registerAdmin, login };
+const getAllAdmins = async (req, res) => {
+  try {
+    const admins = await AdminUser.find().select("-password"); // exclude password
+    res.json({ message: "All admin accounts", admins });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+module.exports = { registerAdmin, login, getAllAdmins  };

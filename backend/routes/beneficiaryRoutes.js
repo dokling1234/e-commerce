@@ -1,7 +1,17 @@
 const router = require("express").Router();
-const { addBeneficiary, updateBeneficiaryStatus } = require("../controllers/beneficiaryController");
+const authMiddleware = require("../middleware/authMiddleWare");
+const logActivity = require("../middleware/activityLogger");
+const {
+  addBeneficiary,
+  updateBeneficiaryStatus,
+  getAllBeneficiaries,
+} = require("../controllers/beneficiaryController");
 
-router.post("/", addBeneficiary);
-router.post("/:id/status", updateBeneficiaryStatus);
-
+router.get("/",authMiddleware, getAllBeneficiaries);
+router.post("/add",authMiddleware, logActivity("Added Beneficiary"), addBeneficiary);
+router.post(
+  "/:id/status",authMiddleware,
+  logActivity((req) => `Changed status to "${req.body.status}"`),
+  updateBeneficiaryStatus
+);
 module.exports = router;
