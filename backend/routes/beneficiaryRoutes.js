@@ -11,7 +11,7 @@ router.get("/",authMiddleware, getAllBeneficiaries);
 router.post("/add",authMiddleware, logActivity("Added Beneficiary"), addBeneficiary);
 router.post(
   "/:id/status",authMiddleware,
-  logActivity((req) => `Changed status to "${req.body.status}"`),
+  logActivity((req) => `Changed status to "${req.body.status}"`),//fix
   updateBeneficiaryStatus
 );
 module.exports = router;

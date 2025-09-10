@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const logActivity = require("../middleware/activityLogger");
-const authMiddleware = require("../middleware/authMiddleware");
+const authMiddleware = require("../middleware/authMiddleWare");
 const {deleteAnnouncement, addAnnouncement, toggleAnnouncementStatus, getAllAnnouncements  } = require("../controllers/announcementController");
 
 router.get("/",authMiddleware, getAllAnnouncements);

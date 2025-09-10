@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 
 const AnnouncementSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  label: { type: String, required: true }, // e.g., "info", "alert", "event"
+  label: { type: String, required: true }, 
   body: { type: String, required: true },
-  media: [{ type: String }], // array of image URLs (optional)
+  media: [{ type: String }], 
   active: { type: Boolean, default: true }
 }, { timestamps: true });
 

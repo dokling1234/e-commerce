@@ -5,8 +5,8 @@ const ActivityLogSchema = new mongoose.Schema({
   adminName: { type: String }, 
   action: { type: String, required: true },
   details: { type: Object },
-  formattedDate: { type: String }, // MM/DD/YYYY
-  formattedTime: { type: String }, // 24hr 
+  formattedDate: { type: String }, 
+  formattedTime: { type: String },  
 }, { timestamps: true });
 
 module.exports = mongoose.model("ActivityLog", ActivityLogSchema);

@@ -9,7 +9,7 @@ const OrderSchema = new mongoose.Schema({
     unitPrice: Number
   }],
   subtotal: Number,
-  proofOfPayment: String, // Receipt Image URL?
+  proofOfPayment: String,
   paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
   status: { type: String, enum: ["pending", "to receive", "received", "cancelled"], default: "pending" },
   trackingNumber: String,

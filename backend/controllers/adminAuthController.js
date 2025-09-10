@@ -1,12 +1,11 @@
 const jwt = require("jsonwebtoken");
 const AdminUser = require("../models/AdminUser");
 
-// Register new admin
+// Register
 const registerAdmin = async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
-    // Check if existing
     const existing = await AdminUser.findOne({ username });
     if (existing) {
       return res.status(400).json({ message: "Username already taken" });
@@ -21,7 +20,7 @@ const registerAdmin = async (req, res) => {
   }
 };
 
-// Login admin
+// Login
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -44,6 +43,7 @@ const login = async (req, res) => {
   }
 };
 
+//getAll
 const getAllAdmins = async (req, res) => {
   try {
     const admins = await AdminUser.find().select("-password"); // exclude password

@@ -6,9 +6,9 @@ const ProductSchema = new mongoose.Schema({
   category: { type: String, default: "Other" },
   price: { type: Number, required: true },
   quantity: { type: Number, default: 1 },
-  size: { type: String, enum: ["XS", "S", "M", "L", "XL", "XXL"], default: "M" }, // size field
-  images: [String], // multiple images
-  perceivedValue: { type: Number, default: 0.5 }, // value
+  size: { type: String, enum: ["XS", "S", "M", "L", "XL", "XXL"], default: "M" }, 
+  images: [String], 
+  perceivedValue: { type: Number, default: 0.5 }, // value for impact?
   impact: {
     meals: { type: Number, default: 0 },
     scholarships: { type: Number, default: 0 },

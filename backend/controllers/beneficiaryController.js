@@ -1,6 +1,6 @@
 const Beneficiary = require("../models/beneficiary");
 
-// Add Beneficiary
+// Add 
 const addBeneficiary = async (req, res) => {
   try {
     const { name, status, age } = req.body;
@@ -9,7 +9,6 @@ const addBeneficiary = async (req, res) => {
       return res.status(400).json({ message: "Name and age are required" });
     }
 
-    // Check if beneficiary already exists
     const existing = await Beneficiary.findOne({ name: name.trim() });
     if (existing) {
       return res.status(400).json({ message: "Beneficiary with this name already exists" });
