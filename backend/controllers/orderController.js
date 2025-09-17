@@ -162,7 +162,7 @@ const generateBundle = async (req, res) => {
 
     const products = await Product.find(query);
 
-    // Convert products to {title, price, score, ...}
+    // Convert products to {title, price, score}
     const scoredProducts = products.map((p) => {
       const impactScore = calcImpactScore(p.impact);
       const score = (p.perceivedValue * 0.6) + (impactScore * 0.4);

@@ -1,30 +1,33 @@
-function knapsack(products, budget) {
-  const n = products.length;
-  const dp = Array.from({ length: n + 1 }, () => Array(budget + 1).fill(0));
+function knapsack(products, maxBudget) {
+  const productCount = products.length;
+  const dpTable = Array.from({ length: productCount + 1 }, () => Array(maxBudget + 1).fill(0));
 
-  // Filll array table
-  for (let i = 1; i <= n; i++) {
-    const { price, score } = products[i - 1];
-    for (let b = 1; b <= budget; b++) {
-      if (price <= b) {
-        dp[i][b] = Math.max(dp[i - 1][b], dp[i - 1][b - price] + score);
+  // Fill DP table with max scores
+  for (let productIndex = 1; productIndex <= productCount; productIndex++) {
+    const { price, score } = products[productIndex - 1];
+    for (let currentBudget = 1; currentBudget <= maxBudget; currentBudget++) {
+      if (price <= currentBudget) {
+        dpTable[productIndex][currentBudget] = Math.max(
+          dpTable[productIndex - 1][currentBudget], 
+          dpTable[productIndex - 1][currentBudget - price] + score
+        );
       } else {
-        dp[i][b] = dp[i - 1][b];
+        dpTable[productIndex][currentBudget] = dpTable[productIndex - 1][currentBudget];
       }
     }
   }
 
-  // item backtracking
-  let res = [];
-  let b = budget;
-  for (let i = n; i > 0; i--) {
-    if (dp[i][b] !== dp[i - 1][b]) {
-      res.push(products[i - 1]);
-      b -= products[i - 1].price;
+  // Backtrack to find chosen products
+  let chosenProducts = [];
+  let remainingBudget = maxBudget;
+  for (let productIndex = productCount; productIndex > 0; productIndex--) {
+    if (dpTable[productIndex][remainingBudget] !== dpTable[productIndex - 1][remainingBudget]) {
+      chosenProducts.push(products[productIndex - 1]);
+      remainingBudget -= products[productIndex - 1].price;
     }
   }
 
-  return { bestScore: dp[n][budget], bundle: res };
+  return { bestScore: dpTable[productCount][maxBudget], bundle: chosenProducts };
 }
 
 module.exports = knapsack;
