@@ -17,6 +17,7 @@
     "jsonwebtoken": "^9.0.2",
     "knapsack": "^1.1.0",
     "mongoose": "^8.18.0",
+    "nodemailer": "^7.0.9",
     "nodemon": "^3.1.10"
   }
 }
