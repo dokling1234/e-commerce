@@ -4,14 +4,14 @@ const AdminUser = require("../models/AdminUser");
 // Register
 const registerAdmin = async (req, res) => {
   try {
-    const { username, password, role } = req.body;
+    const { email, password, role } = req.body;
 
-    const existing = await AdminUser.findOne({ username });
+    const existing = await AdminUser.findOne({ email });
     if (existing) {
-      return res.status(400).json({ message: "Username already taken" });
+      return res.status(400).json({ message: "Email already registered" });
     }
 
-    const newAdmin = new AdminUser({ username, password, role });
+    const newAdmin = new AdminUser({ email, password, role });
     await newAdmin.save();
 
     res.status(201).json({ message: "Admin user created successfully" });
@@ -20,11 +20,13 @@ const registerAdmin = async (req, res) => {
   }
 };
 
+
 // Login
 const login = async (req, res) => {
+  console.log("check")
   try {
-    const { username, password } = req.body;
-    const user = await AdminUser.findOne({ username });
+    const { email, password } = req.body; // Accept email instead of username
+    const user = await AdminUser.findOne({ email }); // Find by email
 
     if (!user || !(await user.comparePassword(password))) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -36,12 +38,13 @@ const login = async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, username: user.username, role: user.role },
+      user: { id: user._id, email: user.email, role: user.role },
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 //getAll
 const getAllAdmins = async (req, res) => {

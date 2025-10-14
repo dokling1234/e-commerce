@@ -1,17 +1,19 @@
 const express = require("express");
+const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 
 dotenv.config();
-connectDB(); // 
+connectDB(); 
 
 const app = express();
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("E-Commerce API is running.");
 });
-
 
 //routes
 const adminAuthRoutes = require("./routes/adminAuthRoutes");

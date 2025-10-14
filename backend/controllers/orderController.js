@@ -74,6 +74,7 @@ const createOrder = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 //manual verify otp
 const verifyOrderOTP = async (req, res) => {
   try {
@@ -249,6 +250,7 @@ const markOrderReceived = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 //optional delete
 const deleteOrder = async (req, res) => {
   try {
@@ -258,12 +260,14 @@ const deleteOrder = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 //impact score
 const calcImpactScore = (impact) => {
   return (
     impact.meals * 0.5 + impact.scholarships * 2 + impact.reliefPacks * 1.5
   );
 };
+
 //knapsack
 const generateBundle = async (req, res) => {
   try {
@@ -305,6 +309,7 @@ const generateBundle = async (req, res) => {
       .json({ message: "Error generating bundle", error: err.message });
   }
 };
+
 //Manual walk in
 const createManualOrder = async (req, res) => {
   try {
