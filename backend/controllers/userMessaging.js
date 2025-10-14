@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-const transporter = require("../config/nodemailer"); // your transporter config
+const transporter = require("../config/nodemailer"); 
 
 const sendUserMessage = async (req, res) => {
   try {
@@ -11,8 +11,8 @@ const sendUserMessage = async (req, res) => {
     }
 
     const mailOptions = {
-      from: process.env.SENDER_EMAIL,       // user your sender email
-      to: process.env.ADMIN_EMAIL,          // admin email to receive messages
+      from: process.env.SENDER_EMAIL,       
+      to: process.env.ADMIN_EMAIL,          
       subject: `New Message from ${firstName} ${lastName}`,
       html: `
         <h3>New Message from Online User</h3>

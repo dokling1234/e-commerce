@@ -74,7 +74,7 @@ const createOrder = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
+//manual verify otp
 const verifyOrderOTP = async (req, res) => {
   try {
     const { orderId, otp } = req.body;
@@ -180,7 +180,7 @@ const markOrderToReceive = async (req, res) => {
 
     if (trackingNumber) order.trackingNumber = trackingNumber;
     console.log(order.ticketVoucher);
-    // **Generate and send voucher when admin confirms receipt**
+    //voucherr
     if (order.status === "to receive" && !order.ticketVoucher === false) {
       // Generate voucher
       console.log("Generated voucehr");
@@ -192,15 +192,15 @@ const markOrderToReceive = async (req, res) => {
         expiresAt: voucherExpiry,
       };
 
-      // Log voucher and email for debugging
-      console.log("Ticket Voucher generated:", order.ticketVoucher);
-      console.log("Sending voucher email to:", order.buyerEmail);
+      // Voucher check
+      console.log("Ticket Voucher" );
+      console.log("Sending voucher");
 
       // Send voucher email
       const htmlContent = VOUCHER_TEMPLATE.replace(
         "{{email}}",
         order.buyerEmail
-      ).replace("{{otp}}", voucherCode); // reusing placeholder
+      ).replace("{{otp}}", voucherCode); 
 
       await transporter.sendMail({
         from: process.env.SENDER_EMAIL,
@@ -249,7 +249,7 @@ const markOrderReceived = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
+//optional delete
 const deleteOrder = async (req, res) => {
   try {
     await Order.findByIdAndDelete(req.params.id);
@@ -258,13 +258,13 @@ const deleteOrder = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
+//impact score
 const calcImpactScore = (impact) => {
   return (
     impact.meals * 0.5 + impact.scholarships * 2 + impact.reliefPacks * 1.5
   );
 };
-
+//knapsack
 const generateBundle = async (req, res) => {
   try {
     const { budget, category } = req.body;
@@ -305,7 +305,7 @@ const generateBundle = async (req, res) => {
       .json({ message: "Error generating bundle", error: err.message });
   }
 };
-
+//Manual walk in
 const createManualOrder = async (req, res) => {
   try {
     const { items, proofOfPayment, subtotal } = req.body;
@@ -316,14 +316,16 @@ const createManualOrder = async (req, res) => {
 
     let totalImpact = { meals: 0, scholarships: 0, reliefPacks: 0 };
 
-    // Validate stock and calculate impact
     for (const item of items) {
       const product = await Product.findById(item.productId);
-      if (!product) return res.status(404).json({ message: `Product not found: ${item.productId}` });
+      if (!product)
+        return res
+          .status(404)
+          .json({ message: `Product not found: ${item.productId}` });
 
       if (item.qty > product.quantity) {
         return res.status(400).json({
-          message: `Not enough stock for ${product.title}. Available: ${product.quantity}`
+          message: `Not enough stock for ${product.title}. Available: ${product.quantity}`,
         });
       }
 
@@ -334,27 +336,29 @@ const createManualOrder = async (req, res) => {
       item.unitPrice = product.price;
     }
 
-    // Deduct stock immediately
     for (const item of items) {
-      await Product.findByIdAndUpdate(item.productId, { $inc: { quantity: -item.qty } });
+      await Product.findByIdAndUpdate(item.productId, {
+        $inc: { quantity: -item.qty },
+      });
     }
 
     const newOrder = new Order({
-      buyerName: "Walk-in Customer",   // default placeholder
-      buyerEmail: "walk-in@store.local", // placeholder
+      buyerName: "Walk-in Customer",
+      buyerEmail: "walk-in@store.local",
       items,
-      subtotal,                        // provided by cashier
+      subtotal,
       proofOfPayment,
       impact: totalImpact,
-      status: "confirmed", 
-      paymentStatus: "paid", 
-      purchaseMethod: "walk-in"
+      status: "confirmed",
+      paymentStatus: "paid",
+      purchaseMethod: "walk-in",
     });
 
     await newOrder.save();
 
-    res.status(201).json({ message: "Manual walk-in order created", order: newOrder });
-
+    res
+      .status(201)
+      .json({ message: "Manual walk-in order created", order: newOrder });
   } catch (err) {
     console.error("Error creating manual order:", err);
     res.status(500).json({ message: "Server error", error: err.message });
