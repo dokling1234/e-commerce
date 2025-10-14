@@ -15,16 +15,19 @@ function Login() {
   }, []);
 
   const handleSubmit = async (e) => {
-    console.log("Submitting")
+    console.log("Submitting");
     e.preventDefault();
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5000/api/admin/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/admin/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       const data = await response.json();
 

@@ -20,7 +20,6 @@ const registerAdmin = async (req, res) => {
   }
 };
 
-
 // Login
 const login = async (req, res) => {
   console.log("check")
