@@ -1,11 +1,13 @@
 const router = require("express").Router();
-const { authMiddleware } = require("../middleware/authMiddleWare");
+const {authMiddleware} = require("../middleware/authMiddleWare");
 const logActivity = require("../middleware/activityLogger");
-const { createOrder, getOrders, updateOrderStatus, deleteOrder, markOrderToReceive, markOrderReceived, generateBundle, verifyOrderOTP, createManualOrder  } = require("../controllers/orderController");
+const upload = require("../middleware/upload.js");
+const { createOrder, getOrders, updateOrderStatus, deleteOrder, markOrderToReceive, markOrderReceived, generateBundle, verifyOrderOTP, createManualOrder, getOrder  } = require("../controllers/orderController");
 
 //client
-router.post("/", createOrder);
+router.post("/order", upload.single("proofOfPayment"), createOrder);
 router.post("/verify-otp", verifyOrderOTP);
+router.get("/:id", getOrder);
 
 //Admin: orderRoutes
 router.get("/", authMiddleware, getOrders);

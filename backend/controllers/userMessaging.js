@@ -1,6 +1,5 @@
-const nodemailer = require("nodemailer");
 
-const transporter = require("../config/nodemailer"); 
+const transporter = require("../config/transporter"); 
 
 const sendUserMessage = async (req, res) => {
   try {

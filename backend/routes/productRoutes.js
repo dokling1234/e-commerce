@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { authMiddleware } = require("../middleware/authMiddleWare");
+const {authMiddleware} = require("../middleware/authMiddleWare");
 const logActivity = require("../middleware/activityLogger");
 const upload = require("../middleware/upload.js");
 
@@ -8,7 +8,11 @@ const {
   addProduct,
   updateProduct,
   deleteProduct,
+  getSingleProduct
 } = require("../controllers/productController");
+//customer routes
+router.get("/customer", getProducts);
+router.get("/:id", getSingleProduct);
 
 //admin routes
 router.get("/", authMiddleware, getProducts);

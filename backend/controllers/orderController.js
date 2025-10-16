@@ -1,7 +1,8 @@
-const Order = require("../models/order");
+const Order = require("../models/Order");
 const Product = require("../models/product");
 const knapsack = require("../helper/knapsack");
 const transporter = require("../config/transporter"); // your transporter
+const VerifiedEmail = require("../models/verifiedEmail");
 const crypto = require("crypto");
 const {
   VERIFY_TEMPLATE,
@@ -10,14 +11,59 @@ const {
 
 // createOrder
 const createOrder = async (req, res) => {
-  try {
-    const { buyerName, buyerEmail, items, proofOfPayment } = req.body;
+  const {
+    buyerName,
+    buyerEmail,
+    items,
+    paymentMethod, // cash/gcash
+    orderType, // delivery/pickup
+    address, // for delivery
+  } = req.body;
+  const proofOfPayment = req.file ? req.file.path : null;
+  console.log("Uploaded proof:", proofOfPayment);
+  if (!paymentMethod) {
+    return res
+      .status(400)
+      .json({ message: "Payment method is required (cash or gcash)" });
+  }
 
+  // If GCash, receipt
+  if (paymentMethod === "gcash" && !proofOfPayment) {
+    return res
+      .status(400)
+      .json({ message: "Proof of payment is required for GCash transactions" });
+  }
+
+  // If Delivery, address
+  if (orderType === "delivery" && !address) {
+    return res
+      .status(400)
+      .json({ message: "Address is required for delivery" });
+  }
+
+  const emailRecord = await VerifiedEmail.findOne({ email: buyerEmail });
+
+  //OTP skip, verified
+  const skipOtp = emailRecord && emailRecord.verifiedUntil > new Date();
+
+  try {
     let subtotal = 0;
     let totalImpact = { meals: 0, scholarships: 0, reliefPacks: 0 };
+    console.log("Raw req.body.items:", req.body.items);
+    let items = req.body.items;
+
+    // If items is a string, parse it
+    if (typeof items === "string") {
+      try {
+        items = JSON.parse(items);
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid items format" });
+      }
+    }
 
     for (const item of items) {
-      const product = await Product.findById(item.productId);
+      const product = await Product.findById(String(item.productId).trim());
+
       if (!product)
         return res.status(404).json({ message: "Product not found" });
 
@@ -35,9 +81,33 @@ const createOrder = async (req, res) => {
       item.unitPrice = product.price;
     }
 
-    // Generate OTP
-    const otp = crypto.randomInt(100000, 999999).toString(); // 6-digit
-    const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    if (skipOtp) {
+      const newOrder = new Order({
+        buyerName,
+        buyerEmail,
+        items,
+        subtotal,
+        proofOfPayment,
+        impact: totalImpact,
+        paymentMethod,
+        orderType,
+        address: orderType === "delivery" ? address : null,
+        status: "pending",
+        otp: null,
+        otpExpires: null,
+      });
+
+      await newOrder.save();
+
+      return res.status(201).json({
+        message: "Order created without OTP (email already verified)",
+        orderId: newOrder._id,
+      });
+    }
+
+    // Required OTP (expired o first time)
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const newOrder = new Order({
       buyerName,
@@ -47,13 +117,16 @@ const createOrder = async (req, res) => {
       proofOfPayment,
       impact: totalImpact,
       status: "pending",
+      paymentMethod,
+      orderType,
+      address: orderType === "delivery" ? address : null,
       otp,
       otpExpires,
     });
 
     await newOrder.save();
 
-    // Send OTP email
+    //Send OTP email
     const htmlContent = VERIFY_TEMPLATE.replace(
       "{{email}}",
       buyerEmail
@@ -79,31 +152,36 @@ const createOrder = async (req, res) => {
 const verifyOrderOTP = async (req, res) => {
   try {
     const { orderId, otp } = req.body;
-
     const order = await Order.findById(orderId);
+
     if (!order) return res.status(404).json({ message: "Order not found" });
-
-    if (order.otpExpires < new Date()) {
+    if (order.otpExpires < new Date())
       return res.status(400).json({ message: "OTP expired" });
-    }
-
-    if (order.otp !== otp) {
+    if (order.otp !== otp)
       return res.status(400).json({ message: "Invalid OTP" });
-    }
 
-    // Deduct stock
+    // minus stock
     for (const item of order.items) {
       await Product.findByIdAndUpdate(item.productId, {
         $inc: { quantity: -item.qty },
       });
     }
 
+    // store email, 30 days
+    const verifiedUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    await VerifiedEmail.findOneAndUpdate(
+      { email: order.buyerEmail },
+      { verifiedUntil },
+      { upsert: true }
+    );
+
     order.status = "pending";
     order.otp = null;
     order.otpExpires = null;
     await order.save();
 
-    res.json({ message: "Order confirmed", order });
+    res.json({ message: "Order confirmed & email remembered", order });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -194,14 +272,14 @@ const markOrderToReceive = async (req, res) => {
       };
 
       // Voucher check
-      console.log("Ticket Voucher" );
+      console.log("Ticket Voucher");
       console.log("Sending voucher");
 
       // Send voucher email
       const htmlContent = VOUCHER_TEMPLATE.replace(
         "{{email}}",
         order.buyerEmail
-      ).replace("{{otp}}", voucherCode); 
+      ).replace("{{otp}}", voucherCode);
 
       await transporter.sendMail({
         from: process.env.SENDER_EMAIL,
@@ -370,6 +448,16 @@ const createManualOrder = async (req, res) => {
   }
 };
 
+const getOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
+  }
+};
+
 module.exports = {
   createManualOrder,
   createOrder,
@@ -380,4 +468,5 @@ module.exports = {
   deleteOrder,
   generateBundle,
   verifyOrderOTP,
+  getOrder,
 };
