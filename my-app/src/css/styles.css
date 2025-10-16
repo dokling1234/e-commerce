@@ -1,4 +1,4 @@
-/* Import Inter font */
+﻿/* Import Inter font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root{--brand:#e31b23;--text:#222;--muted:#666;--bg:#fff;--shadow:0 12px 28px rgba(0,0,0,.12)}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:"Inter",system-ui,-apple-system,Arial,sans-serif;color:var(--text);background:var(--bg);line-height:1.5}
