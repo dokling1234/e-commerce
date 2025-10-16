@@ -19,11 +19,14 @@ import Beneficiary from "./pages/SegundaManoAdmin/beneficiary";
 import AddProduct from "./pages/SegundaManoAdmin/add-product";
 import AddOrder from "./pages/SegundaManoAdmin/add-order";
 import AddBeneficiary from "./pages/SegundaManoAdmin/add-beneficiary";
+import AddInventory from "./pages/SegundaManoAdmin/add-inventory";
 import Announcement from "./pages/SegundaManoAdmin/announcement";
 import AccountSettings from "./pages/SegundaManoAdmin/account-settings";
 import AdminProduct from "./pages/SegundaManoAdmin/admin-product";
 import StaffManagement from "./pages/SegundaManoAdmin/staff-management";
-
+import DailyCollection from "./pages/SegundaManoAdmin/dailycollection";
+import ViewModal from "./pages/SegundaManoAdmin/view-modal";
+import ActionButtons from "./pages/SegundaManoAdmin/action-buttons";
 /* Components */
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -44,22 +47,111 @@ function App() {
 
         {/* ✅ Admin Pages */}
         <Route path="/login" element={<Login />} />
-        
+
         {/* Protected Admin Routes - All roles */}
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
-        <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-        <Route path="/beneficiary" element={<ProtectedRoute><Beneficiary /></ProtectedRoute>} />
-        <Route path="/add-product" element={<ProtectedRoute><AddProduct /></ProtectedRoute>} />
-        <Route path="/add-order" element={<ProtectedRoute><AddOrder /></ProtectedRoute>} />
-        <Route path="/add-beneficiary" element={<ProtectedRoute><AddBeneficiary /></ProtectedRoute>} />
-        <Route path="/announcement" element={<ProtectedRoute><Announcement /></ProtectedRoute>} />
-        <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
-        <Route path="/admin-product" element={<ProtectedRoute><AdminProduct /></ProtectedRoute>} />
-        
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inventory"
+          element={
+            <ProtectedRoute>
+              <Inventory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <Orders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/beneficiary"
+          element={
+            <ProtectedRoute>
+              <Beneficiary />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add-product"
+          element={
+            <ProtectedRoute>
+              <AddProduct />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add-order"
+          element={
+            <ProtectedRoute>
+              <AddOrder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add-beneficiary"
+          element={
+            <ProtectedRoute>
+              <AddBeneficiary />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/add-inventory" element={<AddInventory />} />
+
+        <Route
+          path="/announcement"
+          element={
+            <ProtectedRoute>
+              <Announcement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account-settings"
+          element={
+            <ProtectedRoute>
+              <AccountSettings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-product"
+          element={
+            <ProtectedRoute>
+              <AdminProduct />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/view-modal" element={<ViewModal />} />
+        <Route path="/action-buttons" element={<ActionButtons />} />
+        <Route path="/dailycollection" element={<DailyCollection />} />
+
         {/* Protected Superadmin Routes - Superadmin only */}
-        <Route path="/activity" element={<ProtectedRoute requireSuperAdmin={true}><Activity /></ProtectedRoute>} />
-        <Route path="/staff-management" element={<ProtectedRoute requireSuperAdmin={true}><StaffManagement /></ProtectedRoute>} />
+        <Route
+          path="/activity"
+          element={
+            <ProtectedRoute requireSuperAdmin={true}>
+              <Activity />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/staff-management"
+          element={
+            <ProtectedRoute requireSuperAdmin={true}>
+              <StaffManagement />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );

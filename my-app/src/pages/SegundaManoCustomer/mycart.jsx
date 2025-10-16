@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import "../../css/styles.css";  
-
+import "../../css/styles.css";
 
 const MyCart = () => {
   const [navActive, setNavActive] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
 
   const toggleMobileNav = () => {
     setNavActive(!navActive);
@@ -23,31 +23,48 @@ const MyCart = () => {
       }
     };
     window.addEventListener("resize", handleResize);
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+  const fetchCart = async () => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/cart/get`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCartItems(data.cart);
+      } else {
+        setCartItems([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch cart", err);
+    }
+  };
 
-  // Example cart items
-  const cartItems = [
-    {
-      name: "Pleated Skirt",
-      color: "Gray",
-      price: 200,
-      img: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=480&q=80",
-    },
-    {
-      name: "Long Sleeve Polo",
-      color: "Blue",
-      price: 200,
-      img: "https://images.unsplash.com/photo-1514996937319-344454492b37?auto=format&fit=crop&w=480&q=80",
-    },
-    {
-      name: "Dress",
-      color: "Brown",
-      price: 200,
-      img: "https://picsum.photos/seed/dress/480/480",
-    },
-  ];
+  fetchCart();
+  const subtotal = cartItems.reduce(
+    (acc, item) => acc + (item.price || 0) * item.quantity,
+    0
+  );
 
+  const handleRemoveFromCart = async (productId) => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/cart/remove`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ productId }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setCartItems(data.cart);
+      }
+    } catch (err) {
+      console.error("Failed to remove item", err);
+    }
+  };
   // Suggested items
   const suggestions = [
     {
@@ -65,7 +82,6 @@ const MyCart = () => {
   ];
 
   // Calculate totals
-  const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
 
   return (
     <>
@@ -75,7 +91,9 @@ const MyCart = () => {
           <div className="brand">
             <span className="brand__mark"></span>
             <span className="brand__text">
-              Segunda<br />Mana
+              Segunda
+              <br />
+              Mana
             </span>
           </div>
 
@@ -133,22 +151,39 @@ const MyCart = () => {
               <div className="cart-head">
                 <div>Product</div>
                 <div>Price</div>
+                <div>Quantity</div>
                 <div>Subtotal</div>
-                <div></div>
+                <div> </div>
               </div>
 
               {cartItems.map((item, i) => (
                 <div className="cart-row" key={i}>
                   <div className="c-item">
-                    <img src={item.img} alt={item.name} />
+                    <img
+                      src={
+                        item.image ||
+                        (item.images && item.images[0]) ||
+                        "https://via.placeholder.com/80"
+                      }
+                      alt={item.title || "Product"}
+                    />
                     <div className="c-info">
-                      <div className="c-name">{item.name}</div>
-                      <div className="c-variant">Color: {item.color}</div>
+                      <div className="c-name">{item.title || item.name}</div>
+                      {item.color && (
+                        <div className="c-variant">Color: {item.color}</div>
+                      )}
                     </div>
                   </div>
-                  <div className="c-price">₱{item.price.toFixed(2)}</div>
-                  <div className="c-subtotal">₱{item.price.toFixed(2)}</div>
-                  <button className="c-remove" aria-label="Remove">
+                  <div className="c-price">₱{item.price || item.price}</div>
+                  <div className="c-qty">{item.quantity || 1}</div>
+                  <div className="c-subtotal">
+                    ₱{(item.unitPrice || item.price) * (item.quantity || 1)}
+                  </div>
+                  <button
+                    className="c-remove"
+                    aria-label="Remove"
+                    onClick={() => handleRemoveFromCart(item.productId)} // or item._id
+                  >
                     ✕
                   </button>
                 </div>
@@ -162,11 +197,15 @@ const MyCart = () => {
               <div className="summary-title">Cart</div>
               <div className="summary-row">
                 <span>Subtotal</span>
-                <span><strong>₱{subtotal.toFixed(2)}</strong></span>
+                <span>
+                  <strong>₱{subtotal.toFixed(2)}</strong>
+                </span>
               </div>
               <div className="summary-row total">
                 <span>Total</span>
-                <span><strong>₱{subtotal.toFixed(2)}</strong></span>
+                <span>
+                  <strong>₱{subtotal.toFixed(2)}</strong>
+                </span>
               </div>
               <Link to="/checkout" className="summary-checkout">
                 Proceed to checkout
