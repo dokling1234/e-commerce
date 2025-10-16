@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import "../../css/styles.css"; // new dedicated CSS file
 
 const Product = () => {
   const [navActive, setNavActive] = useState(false);
+  const [products, setProducts] = useState([]);
+  const { productId } = useParams();
 
   const toggleMobileNav = () => {
     setNavActive(!navActive);
@@ -16,14 +18,34 @@ const Product = () => {
   };
 
   useEffect(() => {
+    console.log("Product component mounted");
     const handleResize = () => {
       if (window.innerWidth > 900) {
         closeMobileNav();
       }
     };
     window.addEventListener("resize", handleResize);
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      console.log("Fetching product with ID:", productId);
+      try {
+        const res = await fetch(
+          `http://localhost:5000/api/admin/products/${productId}`
+        );
+        const data = await res.json();
+        setProducts([data]);
+        setMainImage(data.images?.[0] || "");
+      } catch (err) {
+        console.error("Failed to load product", err);
+      }
+    };
+
+    if (productId) fetchProduct();
+  }, [productId]);
 
   // ✅ Image thumbnails + dynamic main image
   const images = [
@@ -32,12 +54,34 @@ const Product = () => {
     "https://images.unsplash.com/photo-1523381294911-8d3cead13475?q=80&w=800&auto=format&fit=crop",
   ];
 
-  const [mainImage, setMainImage] = useState(
-    "https://images.unsplash.com/photo-1514996937319-344454492b37?q=80&w=1200&auto=format&fit=crop"
-  );
+  const [mainImage, setMainImage] = useState("");
 
   const handleThumbnailClick = (img) => {
     setMainImage(img);
+  };
+
+  const product = products.length > 0 ? products[0] : null;
+
+  const handleAddToCart = async (product) => {
+    try {
+      const res = await fetch("http://localhost:5000/api/cart/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          productId: product._id,
+          quantity: 1,
+          title: product.title,
+          price: product.price,
+          image: product.images?.[0] || "",
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) console.log("Added to cart", data.cart);
+    } catch (err) {
+      console.error("Error adding to cart", err);
+    }
   };
 
   return (
@@ -97,7 +141,7 @@ const Product = () => {
       <main className="pd-wrap">
         {/* Thumbnails */}
         <aside className="pd-thumbs">
-          {images.map((img, i) => (
+          {(product?.images || images).map((img, i) => (
             <img
               key={i}
               src={img}
@@ -110,36 +154,41 @@ const Product = () => {
 
         {/* Main Image */}
         <section className="pd-main">
-          <img src={mainImage} alt="Half-Zip Stripped Sweater" />
+          <img
+            src={mainImage || product?.images?.[0] || images[0]}
+            alt={product?.title || product?.itemName}
+          />
         </section>
 
         {/* Info */}
         <section className="pd-info">
-          <h1>Half-Zip Stripped Sweater</h1>
+          <h1>{product?.title || product?.itemName || "Product Name"}</h1>
           <p className="pd-desc">
-            A classic layering piece with a modern twist. This half-zip sweater
-            features a timeless striped design, soft knit fabric, and a
-            versatile zip-up collar for adjustable comfort. Finished with ribbed
-            cuffs and hem for a snug fit, it’s perfect for both casual days and
-            smart-casual looks.
+            {product?.description || "No description available."}
           </p>
 
-          <div className="pd-price">₱200.00</div>
+          <div className="pd-price">₱{product?.price || "0.00"}</div>
 
           <div className="pd-field">
             <label>Measurements</label>
             <select className="pd-select">
-              <option>Small</option>
-              <option>Medium</option>
-              <option>Large</option>
+              {product?.sizes?.length
+                ? product.sizes.map((size, i) => (
+                    <option key={i}>{size}</option>
+                  ))
+                : ["Small", "Medium", "Large"].map((size) => (
+                    <option key={size}>{size}</option>
+                  ))}
             </select>
           </div>
 
-          <button className="pd-btn">Add to Cart</button>
+          <button className="pd-btn" onClick={() => handleAddToCart(product)}>
+            Add to Cart
+          </button>
 
           <div className="pd-meta">
             <div>
-              <strong>Category</strong>: Clothing
+              <strong>Category</strong>: {product?.category || "Uncategorized"}
             </div>
           </div>
         </section>
