@@ -8,8 +8,8 @@ const getProducts = async (req, res) => {
 //addProduct
 const addProduct = async (req, res) => {
   try {
-    const { title, description, price, quantity, category } = req.body;
-
+    const { itemName, description, price, quantity, category, arRef } =
+      req.body;
     // Upload multiple images to Cloudinary
     const images = [];
     if (req.files && req.files.length > 0) {
@@ -22,12 +22,13 @@ const addProduct = async (req, res) => {
     }
 
     const product = new Product({
-      title,
+      itemName,
       description,
       price,
       quantity,
       category,
       images, // array of image URLs
+      arRef,
     });
 
     await product.save();
@@ -37,7 +38,6 @@ const addProduct = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 
 //updateProduct
 const updateProduct = async (req, res) => {
@@ -53,4 +53,16 @@ const deleteProduct = async (req, res) => {
   res.json({ message: "Product deleted" });
 };
 
-module.exports = { getProducts, addProduct, updateProduct, deleteProduct };
+
+const getSingleProduct =  async (req, res) => {
+  try {
+    console.log("Getting product with ID:", req.params.id);
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { getProducts, addProduct, updateProduct, deleteProduct, getSingleProduct };
