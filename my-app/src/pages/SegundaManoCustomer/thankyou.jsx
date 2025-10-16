@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import "../../css/styles.css";  
+import { useLocation } from "react-router-dom";
+import "../../css/styles.css";
 
 const ThankYou = () => {
   const [navActive, setNavActive] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
+  const location = useLocation();
+  const { orderId } = location.state || {};
 
   // prevent body scroll when mobile nav is active
   useEffect(() => {
@@ -18,14 +21,23 @@ const ThankYou = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, [navActive]);
 
-  // Load order details from localStorage
   useEffect(() => {
-    const savedOrder = localStorage.getItem("orderDetails");
-    if (savedOrder) {
-      setOrderDetails(JSON.parse(savedOrder));
+    if (orderId) {
+      fetch(`http://localhost:5000/api/admin/orders/${orderId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setOrderDetails({
+              total: data.order.subtotal,
+              date: new Date(data.order.createdAt).toLocaleDateString(),
+              type: data.order.orderType,
+              address: data.order.address,
+              impact: data.order.impact,
+            });
+          }
+        });
     }
-  }, []);
-
+  }, [orderId]);
   return (
     <>
       {/* Header */}
@@ -88,8 +100,16 @@ const ThankYou = () => {
           {orderDetails ? (
             <>
               <p className="thankyou-message">
-                Your order of <strong>₱{orderDetails.total}</strong> will{" "}
-                <strong>provide two weeks'</strong> worth of meals for a scholar.
+                Your order of <strong>₱{orderDetails.total}</strong> will
+                {orderDetails.impact.meals > 0 && (
+                  <>
+                    {" "}
+                    provide <strong>
+                      {orderDetails.impact.meals} meals
+                    </strong>{" "}
+                    to scholars.
+                  </>
+                )}
               </p>
 
               <div className="thankyou-order">

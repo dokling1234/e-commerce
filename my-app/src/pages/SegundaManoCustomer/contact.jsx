@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import "../../css/styles.css";  
-
-
-
+import "../../css/styles.css";
 
 const Contact = () => {
   const [navActive, setNavActive] = useState(false);
@@ -45,10 +42,36 @@ const Contact = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted:", form);
-    alert("Message sent!");
+
+    try {
+      const res = await fetch("http://localhost:5000/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert(data.message || "Message sent successfully!");
+        setForm({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          message: "",
+        });
+      } else {
+        alert(data.message || "Failed to send message.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while sending your message.");
+    }
   };
 
   return (
@@ -122,7 +145,9 @@ const Contact = () => {
               <div className="contact-details">
                 <div className="contact-item">
                   <div className="contact-icon address"></div>
-                  <span>2002 Jesus St, Pandacan, Manila, 1011 Metro Manila</span>
+                  <span>
+                    2002 Jesus St, Pandacan, Manila, 1011 Metro Manila
+                  </span>
                 </div>
                 <div className="contact-item">
                   <div className="contact-icon phone"></div>

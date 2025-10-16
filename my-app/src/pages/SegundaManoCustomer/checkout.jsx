@@ -19,6 +19,7 @@ export default function Checkout() {
   const [zip, setZip] = useState("");
   const [voucher, setVoucher] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [cartItems, setCartItems] = useState([]);
 
   const navigate = useNavigate();
 
@@ -40,8 +41,30 @@ export default function Checkout() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Hardcoded subtotal for now
-  const subtotal = 600;
+  const fetchCart = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/cart/get`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCartItems(data.cart);
+      } else {
+        setCartItems([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch cart", err);
+    }
+  };
+
+  fetchCart();
+  //total ng cart
+  const subtotal = cartItems.reduce(
+    (acc, item) =>
+      acc +
+      (item.price || item.unitPrice || 0) * (item.quantity || item.qty || 1),
+    0
+  );
   const total = subtotal - discount;
 
   // Apply voucher
@@ -55,24 +78,85 @@ export default function Checkout() {
   };
 
   // Handle Place Order
-  const handlePlaceOrder = () => {
-    const orderDetails = {
-      code: "INF_223",
-      date: new Date().toLocaleDateString(),
-      subtotal,
-      discount,
-      total,
-      type: orderType === "delivery" ? "Delivery" : "Pick up",
-      address:
-        orderType === "delivery"
-          ? `${street}, ${city}, ${state}, ${zip}`
-          : null,
-      customer: { firstName, lastName, phone, email },
-      paymentMode,
-    };
+  const handlePlaceOrder = async () => {
+    if (!firstName || !lastName || !phone || !email) {
+      alert("Please fill out all contact information.");
+      return;
+    }
 
-    localStorage.setItem("orderDetails", JSON.stringify(orderDetails));
-    navigate("/thankyou");
+    const buyerName = `${firstName} ${lastName}`;
+    const buyerEmail = email;
+
+    const items = cartItems.map((item) => ({
+      productId: item.productId || item._id,
+      qty: item.quantity || item.qty || 1,
+    }));
+
+    let bodyToSend;
+    let isMultipart = false; // to control headers
+
+    if (paymentMode === "gcash" && receiptFile) {
+      // ✅ Use FormData for file upload
+      isMultipart = true;
+      const formData = new FormData();
+      formData.append("buyerName", buyerName);
+      formData.append("buyerEmail", buyerEmail);
+      formData.append("items", JSON.stringify(items)); // arrays must be stringified
+      formData.append("paymentMethod", paymentMode);
+      formData.append("orderType", orderType);
+      if (orderType === "delivery") {
+        formData.append(
+          "address",
+          JSON.stringify({ street, city, state, zip })
+        );
+      }
+      formData.append("proofOfPayment", receiptFile); // FILE FIELD
+
+      bodyToSend = formData;
+    } else {
+      // ✅ Fallback to JSON if no file upload
+      bodyToSend = JSON.stringify({
+        buyerName,
+        buyerEmail,
+        items,
+        paymentMethod: paymentMode,
+        orderType,
+        address: orderType === "delivery" ? { street, city, state, zip } : null,
+      });
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/admin/orders/order`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: isMultipart
+            ? undefined
+            : { "Content-Type": "application/json" }, 
+          body: bodyToSend,
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(data.message || "Order placed!");
+
+        await fetch(`http://localhost:5000/api/cart/clear`, {
+          method: "POST",
+          credentials: "include",
+        });
+
+        setCartItems([]);
+        navigate("/thankyou", { state: { orderId: data.orderId } });
+      } else {
+        alert(data.message || "Error placing order.");
+      }
+    } catch (error) {
+      console.error("Order error:", error);
+      alert("Something went wrong. Try again.");
+    }
   };
 
   const [referenceNumber, setReferenceNumber] = useState("");
@@ -211,16 +295,36 @@ export default function Checkout() {
                   <label>PHONE NUMBER</label>
                   <input
                     type="tel"
-                    placeholder="Phone number"
+                    placeholder="eg. 09171234567  "
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    maxLength={11} // Prevent typing more than 11 digits
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      // Allow only digits
+
+                      // Enforce starting with 09
+                      if (value.length === 1) {
+                        if (value !== "0") return;
+                        setPhone(value);
+                        return;
+                      }
+
+                      // Enforce second character to be '9'
+                      if (value.length === 2) {
+                        if (value !== "09") return;
+                        setPhone(value);
+                        return;
+                      }
+                      setPhone(value);
+                    }}
                   />
                 </div>
                 <div className="checkout-field">
                   <label>EMAIL ADDRESS</label>
                   <input
                     type="email"
-                    placeholder="Your Email"
+                    placeholder="eg. john.doe@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -357,39 +461,33 @@ export default function Checkout() {
             {/* Order Summary */}
             <aside className="checkout-order">
               <h3>Order summary</h3>
-
-              <div className="checkout-item">
-                <img
-                  src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=96&q=80"
-                  alt="Pleated Skirt"
-                />
-                <div className="checkout-item-info">
-                  <div className="checkout-item-name">Pleated Skirt</div>
-                  <div className="checkout-item-variant">Color: Gray</div>
-                </div>
-                <div className="checkout-item-price">₱200.00</div>
-              </div>
-
-              <div className="checkout-item">
-                <img
-                  src="https://images.unsplash.com/photo-1514996937319-344454492b37?auto=format&fit=crop&w=96&q=80"
-                  alt="Long Sleeve Polo"
-                />
-                <div className="checkout-item-info">
-                  <div className="checkout-item-name">Long Sleeve Polo</div>
-                  <div className="checkout-item-variant">Color: Blue</div>
-                </div>
-                <div className="checkout-item-price">₱200.00</div>
-              </div>
-
-              <div className="checkout-item">
-                <img src="https://picsum.photos/seed/dress/96/96" alt="Dress" />
-                <div className="checkout-item-info">
-                  <div className="checkout-item-name">Dress</div>
-                  <div className="checkout-item-variant">Color: Brown</div>
-                </div>
-                <div className="checkout-item-price">₱200.00</div>
-              </div>
+              {cartItems.length === 0 ? (
+                <p>Your cart is empty.</p>
+              ) : (
+                cartItems.map((item, i) => (
+                  <div className="checkout-item" key={i}>
+                    <img
+                      src={
+                        item.image ||
+                        (item.images && item.images[0]) ||
+                        "https://via.placeholder.com/80"
+                      }
+                      alt={item.title || "Product"}
+                    />
+                    <div className="checkout-item-info">
+                      <div className="checkout-item-name">
+                        {item.title || item.name}
+                      </div>
+                      <div className="checkout-item-variant">
+                        Qty: {item.qty || item.quantity || 1}
+                      </div>
+                    </div>
+                    <div className="checkout-item-price">
+                      ₱{(item.price || 0) * item.quantity.toFixed(2)}
+                    </div>
+                  </div>
+                ))
+              )}
 
               {/* Voucher Code */}
               <div className="checkout-field">

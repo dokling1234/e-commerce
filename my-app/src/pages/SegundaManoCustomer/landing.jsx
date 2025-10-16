@@ -10,6 +10,7 @@ const Landing = () => {
   const [error, setError] = useState(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [products, setProducts] = useState([]);
 
   const toggleMobileNav = () => {
     setNavActive(!navActive);
@@ -44,25 +45,25 @@ const Landing = () => {
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && isModalOpen) {
+      if (e.key === "Escape" && isModalOpen) {
         closeModal();
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isModalOpen]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isModalOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isModalOpen]);
 
@@ -73,46 +74,46 @@ const Landing = () => {
         setLoading(true);
         setError(null);
         const result = await announcementService.getPublicAnnouncements();
-        
+
         if (result.success) {
           // Filter only active announcements for the landing page
-          const activeAnnouncements = result.data.announcements.filter(announcement => announcement.active);
+          const activeAnnouncements = result.data.announcements.filter(
+            (announcement) => announcement.active
+          );
           setAnnouncements(activeAnnouncements);
         } else {
           setError(result.error);
         }
       } catch (err) {
-        setError('Failed to fetch announcements');
-        console.error('Error fetching announcements:', err);
+        setError("Failed to fetch announcements");
+        console.error("Error fetching announcements:", err);
       } finally {
         setLoading(false);
       }
     };
 
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/admin/products/customer"
+        );
+        if (!res.ok) throw new Error("Failed to fetch products");
+        const data = await res.json();
+        console.log(data);
+
+        // Shuffle products randomly
+        const shuffled = data.sort(() => 0.5 - Math.random());
+        setProducts(shuffled);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load products. Check console for details.");
+      }
+    };
+
+    fetchProducts();
+
     fetchAnnouncements();
   }, []);
-
-  // Reusable product list
-  const products = [
-    {
-      name: "Half Zip Sweater",
-      color: "Navy Blue",
-      price: "₱200.00",
-      img: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=900&auto=format&fit=crop",
-    },
-    {
-      name: "Long Sleeve Polo",
-      color: "Blue",
-      price: "₱200.00",
-      img: "https://images.unsplash.com/photo-1514996937319-344454492b37?q=80&w=900&auto=format&fit=crop",
-    },
-    {
-      name: "Dress",
-      color: "Brown",
-      price: "₱200.00",
-      img: "https://images.unsplash.com/photo-1523381294911-8d3cead13475?q=80&w=900&auto=format&fit=crop",
-    },
-  ];
 
   return (
     <>
@@ -247,182 +248,246 @@ const Landing = () => {
         <section className="product-landing container">
           <h3 className="product-landing-title">Our Products:</h3>
           <div className="product-landing-grid">
-            {products.map((p, i) => (
-              <Link
-                to="/product"
-                state={{ product: p }}
-                key={i}
-                className="product-landing-card"
-              >
-                <img src={p.img} alt={`${p.name} in ${p.color}`} />
-                <div className="product-landing-card__body">
-                  <p className="product-landing-card__name">
-                    {p.name}
-                    <br />
-                    {p.color}
-                  </p>
-                  <div className="product-landing-card__price">{p.price}</div>
-                </div>
-              </Link>
-            ))}
+            {products.length > 0 ? (
+              products.slice(0, 3).map((p, i) => (
+                <Link
+                  to={`/product/${p._id}`} // Dynamic route based on product ID
+                  state={{ product: p }} // Pass the full product object to the page
+                  key={i}
+                  className="product-landing-card"
+                >
+                  <img src={p.images?.[0] || p.img || ""} alt={p.name} />
+                  <div className="product-landing-card__body">
+                    <p className="product-landing-card__name">
+                      {p.name || p.itemName}
+                      <br />
+                      {p.color || ""}
+                    </p>
+                    <div className="product-landing-card__price">
+                      ₱{p.price}
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p>Loading products...</p>
+            )}
           </div>
         </section>
 
         {/* Announcement Section */}
-        <section style={{ maxWidth: '1200px', margin: '60px auto', padding: '0 20px' }}>
+        <section
+          style={{ maxWidth: "1200px", margin: "60px auto", padding: "0 20px" }}
+        >
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <p style={{ color: '#6b7280' }}>Loading announcements...</p>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "2rem",
+                backgroundColor: "white",
+                borderRadius: "12px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <p style={{ color: "#6b7280" }}>Loading announcements...</p>
             </div>
           ) : error ? (
-            <div style={{ textAlign: 'center', padding: '2rem', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '12px' }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "2rem",
+                backgroundColor: "#fee2e2",
+                color: "#dc2626",
+                borderRadius: "12px",
+              }}
+            >
               <p>Error loading announcements: {error}</p>
             </div>
           ) : announcements.length > 0 ? (
             <>
-              <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '24px', color: '#111827', textAlign: 'center' }}>
+              <h2
+                style={{
+                  fontSize: "28px",
+                  fontWeight: "700",
+                  marginBottom: "24px",
+                  color: "#111827",
+                  textAlign: "center",
+                }}
+              >
                 Latest Announcements
               </h2>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
-                gap: '20px',
-                maxHeight: '600px',
-                overflowY: 'auto',
-                padding: '4px'
-              }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+                  gap: "20px",
+                  maxHeight: "600px",
+                  overflowY: "auto",
+                  padding: "4px",
+                }}
+              >
                 {announcements.slice(0, 6).map((announcement, index) => (
-                  <div 
+                  <div
                     key={announcement._id || index}
                     onClick={() => openModal(announcement)}
                     style={{
-                      backgroundColor: 'white',
-                      borderRadius: '12px',
-                      padding: '20px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      maxHeight: '220px',
-                      overflow: 'hidden',
-                      position: 'relative',
-                      transition: 'transform 0.2s, box-shadow 0.2s',
-                      cursor: 'pointer'
+                      backgroundColor: "white",
+                      borderRadius: "12px",
+                      padding: "20px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                      maxHeight: "220px",
+                      overflow: "hidden",
+                      position: "relative",
+                      transition: "transform 0.2s, box-shadow 0.2s",
+                      cursor: "pointer",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 4px 12px rgba(0,0,0,0.15)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(0,0,0,0.1)";
                     }}
                   >
                     {/* Alert Badge */}
-                    <span style={{
-                      display: 'inline-block',
-                      backgroundColor: announcement.label === 'alert' || announcement.label === 'ALERT' ? '#ef4444' : announcement.label === 'warning' ? '#f59e0b' : '#3b82f6',
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      textTransform: 'uppercase',
-                      marginBottom: '12px',
-                      letterSpacing: '0.5px'
-                    }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        backgroundColor:
+                          announcement.label === "alert" ||
+                          announcement.label === "ALERT"
+                            ? "#ef4444"
+                            : announcement.label === "warning"
+                            ? "#f59e0b"
+                            : "#3b82f6",
+                        color: "white",
+                        padding: "4px 12px",
+                        borderRadius: "12px",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        textTransform: "uppercase",
+                        marginBottom: "12px",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
                       {announcement.label}
                     </span>
 
                     {/* Title */}
-                    <h3 style={{
-                      fontSize: '18px',
-                      fontWeight: '700',
-                      marginBottom: '8px',
-                      color: '#1f2937',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
+                    <h3
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: "700",
+                        marginBottom: "8px",
+                        color: "#1f2937",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {announcement.title}
                     </h3>
 
                     {/* Body with line-clamp */}
-                    <div 
+                    <div
                       style={{
-                        fontSize: '14px',
-                        color: '#6b7280',
-                        lineHeight: '1.6',
-                        display: '-webkit-box',
+                        fontSize: "14px",
+                        color: "#6b7280",
+                        lineHeight: "1.6",
+                        display: "-webkit-box",
                         WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        marginBottom: '12px'
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        marginBottom: "12px",
                       }}
-                      dangerouslySetInnerHTML={{ 
-                        __html: announcement.body.replace(/<[^>]*>/g, '').length > 150 
-                          ? announcement.body.replace(/<[^>]*>/g, '').substring(0, 150) + '...' 
-                          : announcement.body 
+                      dangerouslySetInnerHTML={{
+                        __html:
+                          announcement.body.replace(/<[^>]*>/g, "").length > 150
+                            ? announcement.body
+                                .replace(/<[^>]*>/g, "")
+                                .substring(0, 150) + "..."
+                            : announcement.body,
                       }}
                     />
 
                     {/* Date */}
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#9ca3af',
-                      marginTop: 'auto',
-                      position: 'absolute',
-                      bottom: '16px',
-                      left: '20px'
-                    }}>
-                      {new Date(announcement.createdAt).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        color: "#9ca3af",
+                        marginTop: "auto",
+                        position: "absolute",
+                        bottom: "16px",
+                        left: "20px",
+                      }}
+                    >
+                      {new Date(announcement.createdAt).toLocaleDateString(
+                        "en-US",
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        }
+                      )}
                     </p>
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <p style={{ color: '#6b7280', fontSize: '16px' }}>No announcements available at the moment.</p>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "3rem",
+                backgroundColor: "white",
+                borderRadius: "12px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <p style={{ color: "#6b7280", fontSize: "16px" }}>
+                No announcements available at the moment.
+              </p>
             </div>
           )}
         </section>
 
         {/* Announcement Modal */}
         {isModalOpen && selectedAnnouncement && (
-          <div 
+          <div
             className="modal-overlay"
             style={{
-              position: 'fixed',
+              position: "fixed",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               zIndex: 9999,
-              padding: '20px',
-              animation: 'fadeIn 0.2s ease-in-out'
+              padding: "20px",
+              animation: "fadeIn 0.2s ease-in-out",
             }}
             onClick={closeModal}
           >
-            <div 
+            <div
               className="modal-content"
               style={{
-                backgroundColor: 'white',
-                borderRadius: '16px',
-                padding: '32px',
-                maxWidth: '700px',
-                width: '100%',
-                maxHeight: '80vh',
-                overflowY: 'auto',
-                position: 'relative',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                animation: 'slideUp 0.3s ease-out'
+                backgroundColor: "white",
+                borderRadius: "16px",
+                padding: "32px",
+                maxWidth: "700px",
+                width: "100%",
+                maxHeight: "80vh",
+                overflowY: "auto",
+                position: "relative",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                animation: "slideUp 0.3s ease-out",
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -430,87 +495,109 @@ const Landing = () => {
               <button
                 onClick={closeModal}
                 style={{
-                  position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '28px',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  width: '36px',
-                  height: '36px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                  transition: 'background-color 0.2s',
-                  lineHeight: '1'
+                  position: "absolute",
+                  top: "16px",
+                  right: "16px",
+                  background: "none",
+                  border: "none",
+                  fontSize: "28px",
+                  cursor: "pointer",
+                  color: "#6b7280",
+                  width: "36px",
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50%",
+                  transition: "background-color 0.2s",
+                  lineHeight: "1",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#f3f4f6")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "transparent")
+                }
                 aria-label="Close modal"
               >
                 ×
               </button>
 
               {/* Badge */}
-              <span style={{
-                display: 'inline-block',
-                backgroundColor: selectedAnnouncement.label === 'alert' || selectedAnnouncement.label === 'ALERT' ? '#ef4444' : selectedAnnouncement.label === 'warning' || selectedAnnouncement.label === 'WARNING' ? '#f59e0b' : '#3b82f6',
-                color: 'white',
-                padding: '6px 16px',
-                borderRadius: '12px',
-                fontSize: '13px',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                marginBottom: '16px',
-                letterSpacing: '0.5px'
-              }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  backgroundColor:
+                    selectedAnnouncement.label === "alert" ||
+                    selectedAnnouncement.label === "ALERT"
+                      ? "#ef4444"
+                      : selectedAnnouncement.label === "warning" ||
+                        selectedAnnouncement.label === "WARNING"
+                      ? "#f59e0b"
+                      : "#3b82f6",
+                  color: "white",
+                  padding: "6px 16px",
+                  borderRadius: "12px",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  textTransform: "uppercase",
+                  marginBottom: "16px",
+                  letterSpacing: "0.5px",
+                }}
+              >
                 {selectedAnnouncement.label}
               </span>
 
               {/* Title */}
-              <h2 style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: '#1f2937',
-                marginBottom: '12px',
-                paddingRight: '40px',
-                lineHeight: '1.3'
-              }}>
+              <h2
+                style={{
+                  fontSize: "28px",
+                  fontWeight: "700",
+                  color: "#1f2937",
+                  marginBottom: "12px",
+                  paddingRight: "40px",
+                  lineHeight: "1.3",
+                }}
+              >
                 {selectedAnnouncement.title}
               </h2>
 
               {/* Date */}
-              <p style={{
-                fontSize: '14px',
-                color: '#9ca3af',
-                marginBottom: '24px',
-                fontWeight: '500'
-              }}>
-                {new Date(selectedAnnouncement.createdAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "#9ca3af",
+                  marginBottom: "24px",
+                  fontWeight: "500",
+                }}
+              >
+                {new Date(selectedAnnouncement.createdAt).toLocaleDateString(
+                  "en-US",
+                  {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  }
+                )}
               </p>
 
               {/* Divider */}
-              <hr style={{
-                border: 'none',
-                borderTop: '1px solid #e5e7eb',
-                marginBottom: '24px'
-              }} />
+              <hr
+                style={{
+                  border: "none",
+                  borderTop: "1px solid #e5e7eb",
+                  marginBottom: "24px",
+                }}
+              />
 
               {/* Full Body Content */}
-              <div 
+              <div
                 style={{
-                  fontSize: '16px',
-                  lineHeight: '1.7',
-                  color: '#374151',
-                  wordWrap: 'break-word',
-                  overflowWrap: 'break-word'
+                  fontSize: "16px",
+                  lineHeight: "1.7",
+                  color: "#374151",
+                  wordWrap: "break-word",
+                  overflowWrap: "break-word",
                 }}
                 dangerouslySetInnerHTML={{ __html: selectedAnnouncement.body }}
               />
@@ -522,7 +609,7 @@ const Landing = () => {
       <footer className="footer">
         © {new Date().getFullYear()} Segunda Mana. Shop with purpose.
       </footer>
-      
+
       {/* Modal Animations */}
       <style>{`
         @keyframes fadeIn {

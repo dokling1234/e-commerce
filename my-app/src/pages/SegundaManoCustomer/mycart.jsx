@@ -28,7 +28,7 @@ const MyCart = () => {
   }, []);
   const fetchCart = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/cart/get`, {
+      const res = await fetch("http://localhost:5000/api/cart/get", {
         credentials: "include",
       });
       const data = await res.json();
@@ -50,7 +50,7 @@ const MyCart = () => {
 
   const handleRemoveFromCart = async (productId) => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/cart/remove`, {
+      const res = await fetch(`http:localhost:5000/api/cart/remove`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
