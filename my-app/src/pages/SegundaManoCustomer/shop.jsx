@@ -1,8 +1,12 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import "../../css/styles.css";  
+import "../../css/styles.css";
 
 const Shop = () => {
+  const [products, setProducts] = useState([]);
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
+  const [selectedCategory, setSelectedCategory] = useState(null); // null = no filter
+
   useEffect(() => {
     const mobileNavToggle = document.querySelector(".mobile-nav-toggle");
     const mainNav = document.querySelector(".main-nav");
@@ -63,6 +67,43 @@ const Shop = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/admin/products/customer"
+        );
+        const data = await res.json();
+        setProducts(data);
+      } catch (err) {
+        console.error("Failed to load products", err);
+      }
+    };
+
+    fetchData();
+  }, []);
+  const handlePriceFilter = (min, max) => {
+    setPriceRange({ min, max });
+  };
+
+  const filteredProducts = products.filter(
+    (p) => p.price >= priceRange.min && p.price <= priceRange.max
+  );
+
+  const categories = [
+    "Furniture",
+    "Clothes",
+    "Gadgets & Phones",
+    "Bags",
+    "Toys",
+    "Dining",
+    "Outdoor",
+  ];
+
+  const handleCategoryClick = (category) => {
+    setSelectedCategory(category);
+  };
+
   return (
     <>
       {/* Header */}
@@ -116,27 +157,22 @@ const Shop = () => {
             <div className="filter-block">
               <div className="filter-title">Categories</div>
               <ul className="filter-list">
-                <li>
-                  <a href="#">Furniture</a>
-                </li>
-                <li className="is-active">
-                  <a href="#">Clothes</a>
-                </li>
-                <li>
-                  <a href="#">Gadgets & Phones</a>
-                </li>
-                <li>
-                  <a href="#">Bags</a>
-                </li>
-                <li>
-                  <a href="#">Toys</a>
-                </li>
-                <li>
-                  <a href="#">Dining</a>
-                </li>
-                <li>
-                  <a href="#">Outdoor</a>
-                </li>
+                {categories.map((cat) => (
+                  <li
+                    key={cat}
+                    className={selectedCategory === cat ? "is-active" : ""}
+                  >
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault(); // prevent page reload
+                        handleCategoryClick(cat);
+                      }}
+                    >
+                      {cat}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -154,27 +190,60 @@ const Shop = () => {
               <ul className="filter-list small">
                 <li>
                   <label>
-                    <input type="checkbox" defaultChecked /> ₱0 – ₱100.00
+                    <input
+                      type="radio"
+                      checked={priceRange?.min === 0 && priceRange?.max === 100}
+                      onChange={() => handlePriceFilter(0, 100)}
+                    />{" "}
+                    ₱0 – ₱100.00
                   </label>
                 </li>
                 <li>
                   <label>
-                    <input type="checkbox" /> ₱100.00 – ₱199.99
+                    <input
+                      type="radio"
+                      checked={
+                        priceRange?.min === 101 && priceRange?.max === 199.99
+                      }
+                      onChange={() => handlePriceFilter(101, 199.99)}
+                    />{" "}
+                    ₱100.01 – ₱199.99
                   </label>
                 </li>
                 <li>
                   <label>
-                    <input type="checkbox" /> ₱200.00 – ₱299.99
+                    <input
+                      type="radio"
+                      checked={
+                        priceRange?.min === 200 && priceRange?.max === 299.99
+                      }
+                      onChange={() => handlePriceFilter(200, 299.99)}
+                    />{" "}
+                    ₱200 – ₱299.99
                   </label>
                 </li>
                 <li>
                   <label>
-                    <input type="checkbox" /> ₱300.00 – ₱399.99
+                    <input
+                      type="radio"
+                      checked={
+                        priceRange?.min === 300 && priceRange?.max === 399.99
+                      }
+                      onChange={() => handlePriceFilter(300, 399.99)}
+                    />{" "}
+                    ₱300 – ₱399.99
                   </label>
                 </li>
                 <li>
                   <label>
-                    <input type="checkbox" /> ₱400.00+
+                    <input
+                      type="radio"
+                      checked={
+                        priceRange?.min === 400 && priceRange?.max === Infinity
+                      }
+                      onChange={() => handlePriceFilter(400, Infinity)}
+                    />{" "}
+                    ₱400+
                   </label>
                 </li>
               </ul>
@@ -187,28 +256,30 @@ const Shop = () => {
             <button className="filter-toggle">Filter</button>
 
             <div className="shop-grid">
-              {[
-                "https://images.unsplash.com/photo-1514996937319-344454492b37?q=80&w=800&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1523381294911-8d3cead13475?q=80&w=800&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?q=80&w=800&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=800&auto=format&fit=crop",
-              ].map((src, i) => (
-                <article className="p-card" key={i}>
-                  <Link to="/product" className="p-add">
-                    Add to cart
-                  </Link>
-                  <Link to="/product" className="p-link">
-                    <figure className="p-thumb">
-                      <img src={src} alt="Half Zip Sweater" />
-                    </figure>
-                    <div className="p-info">
-                      <div className="p-name">Half Zip Sweater</div>
-                      <div className="p-variant">Navy Blue</div>
-                      <div className="p-price">₱200.00</div>
-                    </div>
-                  </Link>
-                </article>
-              ))}
+              {filteredProducts.length > 0 ? (
+                filteredProducts.map((p, i) => (
+                  <article className="p-card" key={i}>
+                    <Link to={`/product/${p._id}`} className="p-add">
+                      Add to cart
+                    </Link>
+                    <Link to={`/product/${p._id}`} className="p-link">
+                      <figure className="p-thumb">
+                        <img
+                          src={p.images?.[0] || ""}
+                          alt={p.name || p.itemName}
+                        />
+                      </figure>
+                      <div className="p-info">
+                        <div className="p-name">{p.name || p.itemName}</div>
+                        {p.size && <div className="p-variant">{p.size}</div>}
+                        <div className="p-price">₱{p.price}</div>
+                      </div>
+                    </Link>
+                  </article>
+                ))
+              ) : (
+                <p>No products found for this price range.</p>
+              )}
             </div>
           </section>
         </div>
