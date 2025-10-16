@@ -31,13 +31,27 @@ const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    // Check if user account is active (only for staff accounts)
+    if (user.role === "staff" && user.status === "inactive") {
+      return res.status(403).json({ 
+        message: "Your account has been deactivated. Please contact the administrator." 
+      });
+    }
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
 
     res.json({
       token,
-      user: { id: user._id, email: user.email, role: user.role },
+      user: { 
+        id: user._id, 
+        username: user.username || user.email.split('@')[0], // Fallback to email prefix
+        email: user.email, 
+        fullName: user.fullName || user.email, // Fallback to email
+        role: user.role || "superadmin", // Fallback to superadmin for existing users
+        status: user.status || "active" // Fallback to active
+      },
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

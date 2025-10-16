@@ -2,9 +2,12 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const AdminUserSchema = new mongoose.Schema({
+  username: { type: String, unique: true, sparse: true }, // Optional, sparse index allows nulls
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ["superadmin", "staff"], default: "staff" }
+  fullName: { type: String }, // Optional for backward compatibility
+  role: { type: String, enum: ["superadmin", "staff"], default: "superadmin" }, // Default to superadmin for existing users
+  status: { type: String, enum: ["active", "inactive"], default: "active" }
 }, { timestamps: true });
 
 // Hash password before save

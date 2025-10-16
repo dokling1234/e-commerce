@@ -21,6 +21,7 @@ import {
   Megaphone,
   Activity,
   Settings,
+  Users,
 } from "lucide-react";
 
 ChartJS.register(
@@ -58,6 +59,22 @@ const centerTextPlugin = {
 };
 
 export default function Dashboard() {
+  // Get user info from sessionStorage
+  const userRole = sessionStorage.getItem('sg_admin_role') || 'admin';
+  const userInfo = JSON.parse(sessionStorage.getItem('sg_admin_user') || '{}');
+  
+  // Display name based on role
+  let userName;
+  if (userRole === 'superadmin') {
+    userName = 'Admin';
+  } else if (userRole === 'staff') {
+    userName = 'Staff';
+  } else {
+    userName = 'Admin'; // Fallback
+  }
+  
+  const displayRole = userRole.charAt(0).toUpperCase() + userRole.slice(1); // Capitalize first letter
+
   // Line chart (Sales Analytics)
   const lineData = {
     labels: [
@@ -161,9 +178,19 @@ export default function Dashboard() {
 
           <div className="admin-section-title">TOOLS</div>
 
-          <NavLink to="/activity" className={({ isActive }) => (isActive ? "active" : "")}>
-            <Activity size={18} /> Activity Log
-          </NavLink>
+          {/* Activity Log - Superadmin Only */}
+          {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
+            <NavLink to="/activity" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Activity size={18} /> Activity Log
+            </NavLink>
+          )}
+
+          {/* Staff Management - Superadmin Only */}
+          {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
+            <NavLink to="/staff-management" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Users size={18} /> Staff Management
+            </NavLink>
+          )}
 
           <NavLink to="/account-settings" className={({ isActive }) => (isActive ? "active" : "")}>
             <Settings size={18} /> Account Settings
@@ -175,7 +202,7 @@ export default function Dashboard() {
       <div className="admin-content">
         <div className="admin-page-header">
           <div className="admin-header-content">
-            <h1 className="admin-h1">Welcome, Admin!</h1>
+            <h1 className="admin-h1">Welcome, {userName}!</h1>
           </div>
         </div>
 

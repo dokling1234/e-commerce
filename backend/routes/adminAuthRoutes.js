@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const authMiddleware = require("../middleware/authMiddleWare");
+const { authMiddleware } = require("../middleware/authMiddleWare");
 const { registerAdmin, login, getAllAdmins } = require("../controllers/AdminAuthController");
 
 router.post("/register", registerAdmin);

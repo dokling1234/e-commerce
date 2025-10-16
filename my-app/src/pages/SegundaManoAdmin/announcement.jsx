@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Home,
@@ -8,9 +8,14 @@ import {
   Megaphone,
   Activity,
   Settings,
+  Trash2,
+  Eye,
+  EyeOff,
+  Users,
 } from "lucide-react";
 import "../../css/styles.css";
 import "../../css/adminsidebar.css";
+import { announcementService } from "../../services/announcementService";
 
 const Announcement = () => {
   const [title, setTitle] = useState("");
@@ -18,6 +23,13 @@ const Announcement = () => {
   const [label, setLabel] = useState("");
   const [message, setMessage] = useState("<p>Enter the text for your Message..</p>");
   const [search, setSearch] = useState("");
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [announcementToDelete, setAnnouncementToDelete] = useState(null);
 
   const editorRef = useRef(null);
 
@@ -36,18 +48,185 @@ const Announcement = () => {
     execCommand("insertHTML", `{{${name}}}`);
   };
 
-  const handlePublish = () => {
-    console.log({
-      title,
-      mediaType,
-      label,
-      message: editorRef.current.innerHTML,
-    });
-    alert("Announcement Published!");
+  // Fetch announcements on component mount
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
+  // Set initial editor content
+  useEffect(() => {
+    if (editorRef.current && !editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = message;
+    }
+  }, []);
+
+  // Auto-dismiss success message after 5 seconds
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  // Auto-dismiss error message after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  // Handle ESC key to close delete modal
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && deleteModalOpen) {
+        closeDeleteModal();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [deleteModalOpen]);
+
+  // Prevent body scroll when delete modal is open
+  useEffect(() => {
+    if (deleteModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [deleteModalOpen]);
+
+  const fetchAnnouncements = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await announcementService.getAllAnnouncements();
+      
+      if (result.success) {
+        setAnnouncements(result.data.announcements);
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Failed to fetch announcements');
+      console.error('Error fetching announcements:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handlePublish = async () => {
+    if (!title.trim() || !label.trim() || !message.trim()) {
+      setError("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+      setSuccess(null);
+
+      const announcementData = {
+        title: title.trim(),
+        label: label.trim(),
+        body: editorRef.current.innerHTML,
+        media: mediaType ? [mediaType] : []
+      };
+
+      const result = await announcementService.addAnnouncement(announcementData);
+      
+      if (result.success) {
+        setSuccess("Announcement published successfully!");
+        // Reset form
+        setTitle("");
+        setLabel("");
+        setMessage("<p>Enter the text for your Message..</p>");
+        setMediaType("");
+        if (editorRef.current) {
+          editorRef.current.innerHTML = "<p>Enter the text for your Message..</p>";
+        }
+        // Refresh announcements list
+        fetchAnnouncements();
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Failed to publish announcement');
+      console.error('Error publishing announcement:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openDeleteModal = (announcement) => {
+    setAnnouncementToDelete(announcement);
+    setDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setAnnouncementToDelete(null);
+    setDeleteModalOpen(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!announcementToDelete) return;
+    
+    try {
+      setError(null);
+      const result = await announcementService.deleteAnnouncement(announcementToDelete._id);
+      
+      if (result.success) {
+        setSuccess("Announcement deleted successfully!");
+        fetchAnnouncements();
+        closeDeleteModal();
+      } else {
+        setError(result.error);
+        closeDeleteModal();
+      }
+    } catch (err) {
+      setError('Failed to delete announcement');
+      console.error('Error deleting announcement:', err);
+      closeDeleteModal();
+    }
+  };
+
+  const handleToggleStatus = async (id, currentStatus) => {
+    try {
+      setError(null);
+      const result = await announcementService.toggleAnnouncementStatus(id, !currentStatus);
+      
+      if (result.success) {
+        setSuccess(`Announcement ${!currentStatus ? 'enabled' : 'disabled'} successfully!`);
+        fetchAnnouncements();
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Failed to update announcement status');
+      console.error('Error updating announcement status:', err);
+    }
+  };
+
+  // Filter announcements based on search
+  const filteredAnnouncements = announcements.filter(announcement =>
+    announcement.title.toLowerCase().includes(search.toLowerCase()) ||
+    announcement.label.toLowerCase().includes(search.toLowerCase()) ||
+    announcement.body.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="admin-settings-layout">
+    <div className="admin-layout">
       {/* Sidebar */}
       <aside className="admin-sidebar">
         <div className="admin-brand">
@@ -66,7 +245,7 @@ const Announcement = () => {
           <NavLink to="/inventory" className={({ isActive }) => (isActive ? "active" : "")}>
             <Box size={18} /> Inventory
           </NavLink>
-          <NavLink to="/admin-product"className={({ isActive }) => (isActive ? "active" : "")}>
+          <NavLink to="/admin-product" className={({ isActive }) => (isActive ? "active" : "")}>
                 <Box size={18} /> Product
                 </NavLink>
           <NavLink to="/orders" className={({ isActive }) => (isActive ? "active" : "")}>
@@ -80,41 +259,73 @@ const Announcement = () => {
           </NavLink>
 
           <div className="admin-section-title">TOOLS</div>
+          
+          {/* Activity Log - Superadmin Only */}
+          {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
           <NavLink to="/activity" className={({ isActive }) => (isActive ? "active" : "")}>
             <Activity size={18} /> Activity Log
           </NavLink>
+          )}
+          
+          {/* Staff Management - Superadmin Only */}
+          {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
+            <NavLink to="/staff-management" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Users size={18} /> Staff Management
+            </NavLink>
+          )}
+          
           <NavLink to="/account-settings" className={({ isActive }) => (isActive ? "active" : "")}>
             <Settings size={18} /> Account Settings
           </NavLink>
         </nav>
       </aside>
 
-      {/* Main Content */}
-      <main className="admin-main p-6">
-        {/* Page Title */}
-        <div className="page-title mb-6">
-          <h1 className="text-2xl font-extrabold">Segunda Mana</h1>
+      {/* Content */}
+      <div className="admin-content">
+        <div className="admin-page-header">
+          <div className="admin-header-content">
+            <h1 className="admin-h1">Segunda Mana</h1>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Announcement Form */}
-          <div className="bg-white border rounded-xl shadow-sm">
-            <div className="border-b px-4 py-3 font-semibold">Announcement</div>
-            <div className="p-4">
-              <label className="block text-sm text-gray-500 mb-1">Title</label>
+
+        <div className="admin-dashboard-content">
+          <div className="admin-main-content">
+            {/* Two Column Layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              {/* LEFT COLUMN - Announcement Form */}
+              <div className="admin-panel">
+                <div className="admin-title">
+                  <h3>Announcement</h3>
+        </div>
+
+                <div style={{ padding: '0', marginTop: '10px' }}>
+                  {/* Title Field */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Title</label>
               <input
-                className="w-full border rounded-lg p-2 mb-3 text-sm"
-                placeholder="Title"
+                      type="text"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
+                      placeholder="Enter announcement title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
+                  </div>
 
-              <label className="block text-sm text-gray-500 mb-1">
-                Media Content{" "}
-                <span className="text-gray-400 font-semibold ml-1">(optional)</span>
-              </label>
+                  {/* Media Content Field */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Media Content</label>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '999px', fontSize: '12px', fontWeight: '500', backgroundColor: '#f3f4f6', color: '#6b7280' }}>
+                        OPTIONAL
+                      </span>
+                      <svg style={{ width: '16px', height: '16px', color: '#9ca3af' }} fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>Type of media content will user for header</p>
               <select
-                className="w-full border rounded-lg p-2 mb-3 text-sm bg-white"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
                 value={mediaType}
                 onChange={(e) => setMediaType(e.target.value)}
               >
@@ -123,98 +334,587 @@ const Announcement = () => {
                 <option value="jpg">JPG</option>
                 <option value="none">None</option>
               </select>
+                    <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Note: Upload media content in PNG or JPG format.</p>
+                  </div>
 
-              <label className="block text-sm text-gray-500 mb-1">Label</label>
+                  {/* Label Field */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Label</label>
               <input
-                className="w-full border rounded-lg p-2 mb-3 text-sm"
-                placeholder="Label"
+                      type="text"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
+                      placeholder="Enter label"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
               />
+                  </div>
 
-              <label className="block text-sm text-gray-500 mb-1">Message</label>
-
-              {/* Toolbar */}
-              <div className="flex gap-2 border rounded-t-lg bg-gray-50 px-2 py-1 text-sm">
-                <button type="button" onClick={() => execCommand("bold")}>
-                  <b>B</b>
+                  {/* Message Editor */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Message</label>
+                    
+                    {/* Rich Text Toolbar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #d1d5db', borderBottom: 'none', borderRadius: '6px 6px 0 0', backgroundColor: '#f9fafb', padding: '8px 12px' }}>
+                      <select style={{ fontSize: '14px', border: 'none', backgroundColor: 'transparent' }}>
+                        <option>Normal</option>
+                      </select>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
+                        <button
+                          type="button"
+                          onClick={() => execCommand("bold")}
+                          style={{ padding: '4px 8px', fontSize: '14px', fontWeight: 'bold', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: '4px' }}
+                        >
+                          B
                 </button>
-                <button type="button" onClick={() => execCommand("italic")}>
-                  <i>I</i>
+                        <button
+                          type="button"
+                          onClick={() => execCommand("italic")}
+                          style={{ padding: '4px 8px', fontSize: '14px', fontStyle: 'italic', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: '4px' }}
+                        >
+                          I
                 </button>
-                <button type="button" onClick={() => execCommand("underline")}>
-                  <u>U</u>
+                        <button
+                          type="button"
+                          onClick={() => execCommand("underline")}
+                          style={{ padding: '4px 8px', fontSize: '14px', textDecoration: 'underline', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: '4px' }}
+                        >
+                          U
                 </button>
-                <button type="button" onClick={() => execCommand("formatBlock", "H1")}>
+                        <button
+                          type="button"
+                          onClick={() => execCommand("formatBlock", "H1")}
+                          style={{ padding: '4px 8px', fontSize: '14px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: '4px' }}
+                        >
                   H1
                 </button>
-                <button type="button" onClick={() => execCommand("formatBlock", "H2")}>
+                        <button
+                          type="button"
+                          onClick={() => execCommand("formatBlock", "H2")}
+                          style={{ padding: '4px 8px', fontSize: '14px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: '4px' }}
+                        >
                   H2
                 </button>
-                <button type="button" onClick={() => execCommand("formatBlock", "BLOCKQUOTE")}>
-                  “ Quote
+                        <button
+                          type="button"
+                          onClick={() => execCommand("formatBlock", "BLOCKQUOTE")}
+                          style={{ padding: '4px 8px', fontSize: '14px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: '4px' }}
+                        >
+                          S
+                        </button>
+                        <button
+                          type="button"
+                          onClick={insertVariable}
+                          style={{ padding: '4px 8px', fontSize: '14px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: '4px' }}
+                        >
+                          + Add Variable
                 </button>
-                <button type="button" onClick={insertVariable}>+ Variable</button>
+                      </div>
               </div>
 
-              {/* Editor */}
+                    {/* Rich Text Editor */}
               <div
                 ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
-                className="border rounded-b-lg min-h-[150px] p-2 text-sm"
-                dangerouslySetInnerHTML={{ __html: message }}
+                      style={{ border: '1px solid #d1d5db', borderTop: 'none', borderRadius: '0 0 6px 6px', minHeight: '120px', padding: '12px', fontSize: '14px', wordWrap: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap', overflow: 'auto', direction: 'ltr', textAlign: 'left', color: message === "<p>Enter the text for your Message..</p>" ? '#9ca3af' : '#000' }}
                 onInput={(e) => setMessage(e.currentTarget.innerHTML)}
+                onFocus={(e) => {
+                  if (e.currentTarget.innerHTML === "<p>Enter the text for your Message..</p>") {
+                    e.currentTarget.innerHTML = "";
+                    setMessage("");
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.currentTarget.innerHTML.trim() === "" || e.currentTarget.innerHTML === "<br>") {
+                    e.currentTarget.innerHTML = "<p>Enter the text for your Message..</p>";
+                    setMessage("<p>Enter the text for your Message..</p>");
+                  }
+                }}
               ></div>
+                  </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 justify-end mt-4">
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '16px' }}>
                 <button
                   type="button"
                   onClick={() => window.history.back()}
-                  className="px-4 py-2 border rounded-lg text-sm"
+                      style={{ padding: '10px 20px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', fontWeight: '600', backgroundColor: 'white', color: '#374151', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handlePublish}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
+                      disabled={submitting}
+                      style={{ padding: '10px 20px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', opacity: submitting ? 0.5 : 1 }}
                 >
-                  Publish Post
+                      {submitting ? 'Publishing...' : 'Publish Post'}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Past Announcements */}
-          <div className="bg-white border rounded-xl shadow-sm">
-            <div className="border-b px-4 py-3 font-semibold">Past Announcements</div>
-            <div className="p-4">
-              {/* Search */}
-              <div className="flex items-center border rounded-lg px-2 py-1 mb-3">
-                <svg
-                  className="w-4 h-4 text-gray-400 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="M21 21l-4.3-4.3" />
+              {/* RIGHT COLUMN - Past Announcements */}
+              <div className="admin-panel">
+                <div className="admin-title">
+                  <h3>Past Announcements</h3>
+                </div>
+                
+                <div style={{ padding: '0', marginTop: '10px' }}>
+                  {/* Search Bar */}
+                  <div style={{ position: 'relative', marginBottom: '16px' }}>
+                    <div style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                      <svg style={{ width: '16px', height: '16px', color: '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
+                    </div>
                 <input
-                  className="flex-1 border-none outline-none text-sm"
+                      type="text"
+                      style={{ width: '100%', paddingLeft: '40px', paddingRight: '12px', paddingTop: '10px', paddingBottom: '10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
                   placeholder="Search"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <div className="text-gray-400 text-sm">No announcements yet.</div>
+
+                  {/* Announcements List */}
+                  {loading ? (
+                    <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                      <div style={{ color: '#6b7280', fontSize: '14px' }}>Loading announcements...</div>
+                    </div>
+                  ) : filteredAnnouncements.length > 0 ? (
+                    <div style={{ maxHeight: '384px', overflowY: 'auto' }}>
+                      {filteredAnnouncements.map((announcement) => (
+                        <div key={announcement._id} style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '12px', marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              {/* Badges */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '999px', fontSize: '12px', fontWeight: '500', backgroundColor: announcement.active ? '#dcfce7' : '#f3f4f6', color: announcement.active ? '#166534' : '#374151' }}>
+                                  {announcement.label}
+                                </span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '999px', fontSize: '12px', fontWeight: '500', backgroundColor: announcement.active ? '#dbeafe' : '#fee2e2', color: announcement.active ? '#1e40af' : '#dc2626' }}>
+                                  {announcement.active ? 'Active' : 'Inactive'}
+                                </span>
+                              </div>
+                              
+                              {/* Title */}
+                              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{announcement.title}</h4>
+                              
+                              {/* Body Preview */}
+                              <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} 
+                                 dangerouslySetInnerHTML={{ __html: announcement.body.replace(/<[^>]*>/g, '').substring(0, 100) + '...' }}></p>
+                              
+                              {/* Date */}
+                              <p style={{ fontSize: '12px', color: '#9ca3af' }}>
+                                {new Date(announcement.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            
+                            {/* Action Buttons */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '12px' }}>
+                              <button
+                                onClick={() => handleToggleStatus(announcement._id, announcement.active)}
+                                style={{ padding: '8px', color: '#9ca3af', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
+                                title={announcement.active ? 'Disable' : 'Enable'}
+                              >
+                                {announcement.active ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                              <button
+                                onClick={() => openDeleteModal(announcement)}
+                                style={{ padding: '8px', color: '#9ca3af', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
+                                title="Delete"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                      <div style={{ color: '#6b7280', fontSize: '14px' }}>
+                        {search ? 'No announcements found matching your search.' : 'No announcements yet.'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* Success Toast - Bottom Right */}
+      {success && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 9999,
+          backgroundColor: '#10b981',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)',
+          minWidth: '320px',
+          maxWidth: '420px',
+          animation: 'slideInRight 0.3s ease-out'
+        }}>
+          {/* Success Icon */}
+          <svg 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none"
+            style={{ flexShrink: 0 }}
+          >
+            <circle cx="12" cy="12" r="10" fill="white" fillOpacity="0.2"/>
+            <path 
+              d="M8 12L11 15L16 9" 
+              stroke="white" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+          
+          {/* Message */}
+          <span style={{
+            fontSize: '15px',
+            fontWeight: '600',
+            flex: 1
+          }}>
+            {success}
+          </span>
+          
+          {/* Close Button */}
+          <button
+            onClick={() => setSuccess(null)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              color: 'white',
+              fontSize: '22px',
+              cursor: 'pointer',
+              padding: '4px',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              transition: 'background-color 0.2s',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+            aria-label="Close success notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Error Toast - Bottom Right */}
+      {error && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 9999,
+          backgroundColor: '#ef4444',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 8px 24px rgba(239, 68, 68, 0.4)',
+          minWidth: '320px',
+          maxWidth: '420px',
+          animation: 'slideInRight 0.3s ease-out'
+        }}>
+          {/* Error Icon */}
+          <svg 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none"
+            style={{ flexShrink: 0 }}
+          >
+            <circle cx="12" cy="12" r="10" fill="white" fillOpacity="0.2"/>
+            <path 
+              d="M12 8V12M12 16H12.01" 
+              stroke="white" 
+              strokeWidth="2.5" 
+              strokeLinecap="round"
+            />
+          </svg>
+          
+          {/* Message */}
+          <span style={{
+            fontSize: '15px',
+            fontWeight: '600',
+            flex: 1
+          }}>
+            {error}
+          </span>
+          
+          {/* Close Button */}
+          <button
+            onClick={() => setError(null)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              color: 'white',
+              fontSize: '22px',
+              cursor: 'pointer',
+              padding: '4px',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              transition: 'background-color 0.2s',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+            aria-label="Close error notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && announcementToDelete && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '20px',
+            backdropFilter: 'blur(4px)',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+          onClick={closeDeleteModal}
+        >
+          <div 
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '32px',
+              maxWidth: '480px',
+              width: '100%',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              animation: 'modalFadeIn 0.2s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Warning Icon */}
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: '#fee2e2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px'
+            }}>
+              <svg 
+                width="32" 
+                height="32" 
+                viewBox="0 0 24 24" 
+                fill="none"
+                stroke="#dc2626"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v4m0 4h.01" strokeLinecap="round" />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h3 style={{
+              fontSize: '22px',
+              fontWeight: '700',
+              color: '#1f2937',
+              textAlign: 'center',
+              marginBottom: '12px'
+            }}>
+              Delete Announcement?
+            </h3>
+
+            {/* Description */}
+            <p style={{
+              fontSize: '15px',
+              color: '#6b7280',
+              textAlign: 'center',
+              marginBottom: '8px',
+              lineHeight: '1.6'
+            }}>
+              Are you sure you want to delete this announcement?
+            </p>
+
+            {/* Announcement Title Preview */}
+            <div style={{
+              backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginTop: '16px',
+              marginBottom: '24px'
+            }}>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                margin: 0,
+                marginBottom: '6px'
+              }}>
+                "{announcementToDelete.title}"
+              </p>
+              <span style={{
+                display: 'inline-block',
+                padding: '3px 10px',
+                backgroundColor: '#fee2e2',
+                color: '#991b1b',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: '600',
+                textTransform: 'uppercase'
+              }}>
+                {announcementToDelete.label}
+              </span>
+            </div>
+
+            {/* Warning Message */}
+            <p style={{
+              fontSize: '13px',
+              color: '#dc2626',
+              textAlign: 'center',
+              marginBottom: '24px',
+              fontWeight: '500'
+            }}>
+              This action cannot be undone.
+            </p>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={closeDeleteModal}
+                style={{
+                  padding: '12px 28px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  minWidth: '120px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  padding: '12px 28px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  minWidth: '120px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#b91c1c';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#dc2626';
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Alert & Modal Animation Styles */}
+      <style>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes modalFadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };

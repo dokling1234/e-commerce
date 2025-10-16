@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const authMiddleware = require("../middleware/authMiddleWare");
+const { authMiddleware } = require("../middleware/authMiddleWare");
 const logActivity = require("../middleware/activityLogger");
 const { createOrder, getOrders, updateOrderStatus, deleteOrder, markOrderToReceive, markOrderReceived, generateBundle, verifyOrderOTP, createManualOrder  } = require("../controllers/orderController");
 

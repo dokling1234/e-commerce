@@ -8,6 +8,7 @@ import {
   Megaphone,
   Activity,
   Settings,
+  Users,
 } from "lucide-react";
 
 import "../../css/styles.css";
@@ -117,12 +118,27 @@ const OrderManagement = () => {
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
-            <NavLink
-              to="/activity"
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              <Activity size={18} /> Activity Log
-            </NavLink>
+            
+            {/* Activity Log - Superadmin Only */}
+            {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
+              <NavLink
+                to="/activity"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Activity size={18} /> Activity Log
+              </NavLink>
+            )}
+            
+            {/* Staff Management - Superadmin Only */}
+            {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
+              <NavLink
+                to="/staff-management"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Users size={18} /> Staff Management
+              </NavLink>
+            )}
+            
             <NavLink
               to="/account-settings"
               className={({ isActive }) => (isActive ? "active" : "")}

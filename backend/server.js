@@ -21,12 +21,14 @@ const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const beneficiaryRoutes = require("./routes/beneficiaryRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
+const staffRoutes = require("./routes/staffRoutes");
 
 app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin/products", productRoutes);
 app.use("/api/admin/orders", orderRoutes);
 app.use("/api/admin/beneficiaries", beneficiaryRoutes);
 app.use("/api/admin/announcements", announcementRoutes);
+app.use("/api/admin/staff", staffRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

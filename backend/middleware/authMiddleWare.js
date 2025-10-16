@@ -14,4 +14,23 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-module.exports = authMiddleware;
+// Middleware to require superadmin role
+const requireSuperAdmin = (req, res, next) => {
+  if (!req.admin) {
+    return res.status(401).json({ 
+      success: false, 
+      message: "Unauthorized" 
+    });
+  }
+  
+  if (req.admin.role !== 'superadmin') {
+    return res.status(403).json({ 
+      success: false, 
+      message: "Access denied. Superadmin only." 
+    });
+  }
+  
+  next();
+};
+
+module.exports = { authMiddleware, requireSuperAdmin };

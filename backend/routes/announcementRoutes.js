@@ -1,8 +1,11 @@
 const router = require("express").Router();
 const logActivity = require("../middleware/activityLogger");
-const authMiddleware = require("../middleware/authMiddleWare");
+const { authMiddleware } = require("../middleware/authMiddleWare");
 const {deleteAnnouncement, addAnnouncement, toggleAnnouncementStatus, getAllAnnouncements  } = require("../controllers/announcementController");
 
+// Public route for getting announcements (no authentication required)
+router.get("/public", getAllAnnouncements);
+// Admin routes (authentication required)
 router.get("/",authMiddleware, getAllAnnouncements);
 router.post("/add",authMiddleware, logActivity("Added New Announcement"), addAnnouncement);
 router.post("/:id",authMiddleware, logActivity("Deleted Announcement"), deleteAnnouncement);

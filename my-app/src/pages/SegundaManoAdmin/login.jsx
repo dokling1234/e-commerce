@@ -21,7 +21,7 @@ function Login() {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/admin/auth/login`,
+        `http://localhost:5000/api/admin/auth/login`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -39,6 +39,7 @@ function Login() {
       // Store token & user info
       sessionStorage.setItem("sg_admin_token", data.token);
       sessionStorage.setItem("sg_admin_user", JSON.stringify(data.user));
+      sessionStorage.setItem("sg_admin_role", data.user.role); // Store role for easy access
 
       window.location.replace("/dashboard");
     } catch (err) {
@@ -61,6 +62,30 @@ function Login() {
 
         <section className="admin-login-card" aria-label="Login">
           <h2>Login to your account</h2>
+          
+          {/* Error Message */}
+          {error && (
+            <div style={{
+              backgroundColor: '#fee2e2',
+              border: '1px solid #ef4444',
+              color: '#dc2626',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
+          
           <form className="admin-login-form" onSubmit={handleSubmit}>
             <div>
               <div className="admin-login-label">Email</div>

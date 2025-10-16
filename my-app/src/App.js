@@ -22,6 +22,10 @@ import AddBeneficiary from "./pages/SegundaManoAdmin/add-beneficiary";
 import Announcement from "./pages/SegundaManoAdmin/announcement";
 import AccountSettings from "./pages/SegundaManoAdmin/account-settings";
 import AdminProduct from "./pages/SegundaManoAdmin/admin-product";
+import StaffManagement from "./pages/SegundaManoAdmin/staff-management";
+
+/* Components */
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -40,18 +44,22 @@ function App() {
 
         {/* ✅ Admin Pages */}
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/product" element={<Product />} />
-        <Route path="/activity" element={<Activity />} />
-        <Route path="/beneficiary" element={<Beneficiary />} />
-        <Route path="/add-product" element={<AddProduct />} />
-        <Route path="/add-order" element={<AddOrder />} />
-        <Route path="/add-beneficiary" element={<AddBeneficiary />} />
-        <Route path="/announcement" element={<Announcement />} />
-        <Route path="/account-settings" element={<AccountSettings />} />
-        <Route path="/admin-product" element={<AdminProduct />} />
+        
+        {/* Protected Admin Routes - All roles */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+        <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+        <Route path="/beneficiary" element={<ProtectedRoute><Beneficiary /></ProtectedRoute>} />
+        <Route path="/add-product" element={<ProtectedRoute><AddProduct /></ProtectedRoute>} />
+        <Route path="/add-order" element={<ProtectedRoute><AddOrder /></ProtectedRoute>} />
+        <Route path="/add-beneficiary" element={<ProtectedRoute><AddBeneficiary /></ProtectedRoute>} />
+        <Route path="/announcement" element={<ProtectedRoute><Announcement /></ProtectedRoute>} />
+        <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+        <Route path="/admin-product" element={<ProtectedRoute><AdminProduct /></ProtectedRoute>} />
+        
+        {/* Protected Superadmin Routes - Superadmin only */}
+        <Route path="/activity" element={<ProtectedRoute requireSuperAdmin={true}><Activity /></ProtectedRoute>} />
+        <Route path="/staff-management" element={<ProtectedRoute requireSuperAdmin={true}><StaffManagement /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
