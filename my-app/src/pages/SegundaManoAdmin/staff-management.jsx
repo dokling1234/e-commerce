@@ -9,6 +9,7 @@ import {
   Activity,
   Settings,
   Users,
+  FilePen
 } from "lucide-react";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import "../../css/adminsidebar.css";
@@ -306,20 +307,35 @@ const StaffManagement = () => {
           <div className="admin-section-title">TOOLS</div>
           
           {/* Activity Log - Superadmin Only */}
-          {userRole === 'superadmin' && (
-            <NavLink to="/activity" className={({ isActive }) => (isActive ? "active" : "")}>
+          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            <NavLink
+              to="/activity"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Activity size={18} /> Activity Log
             </NavLink>
           )}
-          
+
           {/* Staff Management - Superadmin Only */}
-          {userRole === 'superadmin' && (
-            <NavLink to="/staff-management" className={({ isActive }) => (isActive ? "active" : "")}>
+          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            <NavLink
+              to="/staff-management"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Users size={18} /> Staff Management
             </NavLink>
           )}
-          
-          <NavLink to="/account-settings" className={({ isActive }) => (isActive ? "active" : "")}>
+          <NavLink
+            to="/dailycollection"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            <FilePen size={18} /> Daily Collection
+          </NavLink>
+
+          <NavLink
+            to="/account-settings"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
             <Settings size={18} /> Account Settings
           </NavLink>
         </nav>

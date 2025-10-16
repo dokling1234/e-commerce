@@ -1,5 +1,6 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import "../../css/styles.css";
+import { useState, useEffect } from "react";
 import "../../css/adminsidebar.css";
 import { Line, Doughnut } from "react-chartjs-2";
 import {
@@ -22,7 +23,9 @@ import {
   Activity,
   Settings,
   Users,
+  FilePen
 } from "lucide-react";
+import { getAnalytics } from "../../services/api";
 
 ChartJS.register(
   CategoryScale,
@@ -60,19 +63,58 @@ const centerTextPlugin = {
 
 export default function Dashboard() {
   // Get user info from sessionStorage
-  const userRole = sessionStorage.getItem('sg_admin_role') || 'admin';
-  const userInfo = JSON.parse(sessionStorage.getItem('sg_admin_user') || '{}');
-  
+  const userRole = sessionStorage.getItem("sg_admin_role") || "admin";
+  const userInfo = JSON.parse(sessionStorage.getItem("sg_admin_user") || "{}");
+  const [analytics, setAnalytics] = useState({
+    totalOrders: 0,
+    totalInventory: 0,
+    pendingOrders: 0,
+    totalSold: 0,
+    totalRunningSales: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("sg_admin_token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+    fetchAnalytics();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchAnalytics, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      const response = await getAnalytics();
+      console.log("Analytics response:", response);
+      if (response.success) {
+        setAnalytics(response.data);
+        setError(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch analytics:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Display name based on role
   let userName;
-  if (userRole === 'superadmin') {
-    userName = 'Admin';
-  } else if (userRole === 'staff') {
-    userName = 'Staff';
+  if (userRole === "superadmin") {
+    userName = "Admin";
+  } else if (userRole === "staff") {
+    userName = "Staff";
   } else {
-    userName = 'Admin'; // Fallback
+    userName = "Admin"; // Fallback
   }
-  
+
   const displayRole = userRole.charAt(0).toUpperCase() + userRole.slice(1); // Capitalize first letter
 
   // Line chart (Sales Analytics)
@@ -152,47 +194,79 @@ export default function Dashboard() {
         <nav className="admin-nav">
           <div className="admin-section-title">GENERAL</div>
 
-          <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "active" : "")}>
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
             <Home size={18} /> Dashboard
           </NavLink>
 
-          <NavLink to="/inventory" className={({ isActive }) => (isActive ? "active" : "")}>
+          <NavLink
+            to="/inventory"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
             <Box size={18} /> Inventory
           </NavLink>
 
-          <NavLink to="/admin-product" className={({ isActive }) => (isActive ? "active" : "")}>
+          <NavLink
+            to="/admin-product"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
             <Box size={18} /> Product
           </NavLink>
 
-          <NavLink to="/orders" className={({ isActive }) => (isActive ? "active" : "")}>
+          <NavLink
+            to="/orders"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
             <ClipboardList size={18} /> Order Management
           </NavLink>
 
-          <NavLink to="/beneficiary" className={({ isActive }) => (isActive ? "active" : "")}>
+          <NavLink
+            to="/beneficiary"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
             <User size={18} /> Beneficiary
           </NavLink>
 
-          <NavLink to="/announcement" className={({ isActive }) => (isActive ? "active" : "")}>
+          <NavLink
+            to="/announcement"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
             <Megaphone size={18} /> Announcement
           </NavLink>
 
           <div className="admin-section-title">TOOLS</div>
 
-          {/* Activity Log - Superadmin Only */}
-          {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
-            <NavLink to="/activity" className={({ isActive }) => (isActive ? "active" : "")}>
+          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            <NavLink
+              to="/activity"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Activity size={18} /> Activity Log
             </NavLink>
           )}
 
           {/* Staff Management - Superadmin Only */}
-          {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
-            <NavLink to="/staff-management" className={({ isActive }) => (isActive ? "active" : "")}>
+          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            <NavLink
+              to="/staff-management"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Users size={18} /> Staff Management
             </NavLink>
           )}
+          <NavLink
+            to="/dailycollection"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            <FilePen size={18} /> Daily Collection
+          </NavLink>
 
-          <NavLink to="/account-settings" className={({ isActive }) => (isActive ? "active" : "")}>
+          <NavLink
+            to="/account-settings"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
             <Settings size={18} /> Account Settings
           </NavLink>
         </nav>
@@ -202,9 +276,25 @@ export default function Dashboard() {
       <div className="admin-content">
         <div className="admin-page-header">
           <div className="admin-header-content">
-            <h1 className="admin-h1">Welcome, {userName}!</h1>
+            <h1 className="admin-h1">Welcome, Admin!</h1>
           </div>
         </div>
+
+        {error && (
+          <div
+            style={{
+              padding: "12px",
+              background: "#fee",
+              color: "#ef4444",
+              borderRadius: "8px",
+              margin: "12px 0",
+            }}
+          >
+            ⚠️ Failed to load analytics: {error}
+            <br />
+            <small>Make sure the backend server is running on port 5001</small>
+          </div>
+        )}
 
         <div className="admin-dashboard-content">
           <div className="admin-main-content">
@@ -213,25 +303,43 @@ export default function Dashboard() {
               <div className="admin-kpi-card">
                 <div className="admin-kpi-icon">🛒</div>
                 <div className="admin-kpi-main">
-                  <div className="admin-kpi-value">100</div>
+                  <div className="admin-kpi-value">
+                    {loading ? "--" : analytics.totalOrders}
+                  </div>
                   <div className="admin-kpi-label">Total Orders</div>
-                  <div className="admin-kpi-growth">+4% (30 days)</div>
+                  <div className="admin-kpi-growth">
+                    {loading ? "Loading..." : "✓ System Connected"}
+                  </div>
                 </div>
               </div>
 
               <div className="admin-kpi-card">
-                <div className="admin-donut-wrap" style={{ textAlign: "center", width: "100%" }}>
-                  <div
-                    className="admin-donut"
-                    style={{ width: "160px", height: "160px", margin: "0 auto" }}
-                  >
-                    <Doughnut
-                      data={doughnutData}
-                      options={doughnutOptions}
-                      plugins={[centerTextPlugin]}
-                    />
+                <div className="admin-kpi-icon">📦</div>
+                <div className="admin-kpi-main">
+                  <div className="admin-kpi-value">
+                    {loading ? "--" : analytics.totalInventory}
                   </div>
-                  <div className="admin-donut-label">Donation Analytics</div>
+                  <div className="admin-kpi-label">Total Inventory</div>
+                </div>
+              </div>
+
+              <div className="admin-kpi-card">
+                <div className="admin-kpi-icon">⏳</div>
+                <div className="admin-kpi-main">
+                  <div className="admin-kpi-value">
+                    {loading ? "--" : analytics.pendingOrders}
+                  </div>
+                  <div className="admin-kpi-label">Pending Orders</div>
+                </div>
+              </div>
+
+              <div className="admin-kpi-card">
+                <div className="admin-kpi-icon">✅</div>
+                <div className="admin-kpi-main">
+                  <div className="admin-kpi-value">
+                    {loading ? "--" : analytics.totalSold}
+                  </div>
+                  <div className="admin-kpi-label">Items Sold</div>
                 </div>
               </div>
             </div>
@@ -241,7 +349,17 @@ export default function Dashboard() {
               <div className="admin-chart-header">
                 <div>
                   <h2>Sales Analytics</h2>
-                  <p>Overview of sales performance</p>
+                  <p>
+                    Total Running Sales:{" "}
+                    <strong>
+                      ₱
+                      {loading
+                        ? "--"
+                        : analytics.totalRunningSales.toLocaleString("en-PH", {
+                            minimumFractionDigits: 2,
+                          })}
+                    </strong>
+                  </p>
                 </div>
                 <button className="admin-chip">📊 Save Report</button>
               </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Home,
   Box,
@@ -8,47 +8,119 @@ import {
   Megaphone,
   Activity,
   Settings,
-  Users,
+  FilePen,
+  Boxes,
+  Users
 } from "lucide-react";
-
 import "../../css/styles.css";
 import "../../css/adminsidebar.css";
+import ActionButtons from "./action-buttons";
+import ViewModal from "./view-modal";
 
 const OrderManagement = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [viewData, setViewData] = useState(null);
+  const [editData, setEditData] = useState(null);
+  const [deleteItem, setDeleteItem] = useState(null);
+  const navigate = useNavigate();
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  const [orders, setOrders] = useState([]);
+
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   useEffect(() => {
+    console.log(process.env.REACT_APP_API_URL);
+    const token = sessionStorage.getItem("sg_admin_token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
     const handleResize = () => {
-      const isMobile = window.innerWidth <= 768;
-      if (!isMobile) {
-        setSidebarOpen(false);
+      if (window.innerWidth > 768) setSidebarOpen(false);
+    };
+
+    const fetchOrders = async () => {
+      try {
+        const token = sessionStorage.getItem("sg_admin_token");
+        console.log(token);
+        console.log(process.env.REACT_APP_API_URL);
+        const res = await fetch(`http://localhost:5000/api/admin/orders`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        console.log(data);
+        setOrders(data);
+      } catch (error) {
+        console.error("Error fetching orders", error);
       }
     };
 
+    fetchOrders();
+
     window.addEventListener("resize", handleResize);
-    handleResize();
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    const isAuthed = sessionStorage.getItem("sg_admin_logged_in") === "true";
-    if (!isAuthed) {
-      window.location.replace("/login");
-    }
-  }, []);
+  const filtered = orders.filter((o) => {
+    const productId = o.productId?.toLowerCase() || "";
+    const customer = o.customer?.toLowerCase() || "";
+    const productName = o.title?.toLowerCase() || "";
+
+    return (
+      productId.includes(search.toLowerCase()) ||
+      customer.includes(search.toLowerCase()) ||
+      productName.includes(search.toLowerCase())
+    );
+  });
+
+  const exportCSV = () => {
+    if (filtered.length === 0) return;
+
+    const headers = [
+      "No",
+      "Product ID",
+      "Product Name",
+      "Customer",
+      "Date",
+      "Time",
+      "Status",
+    ];
+
+    const rows = filtered.map((o) => [
+      o.id,
+      o.productId,
+      o.productName,
+      o.customer,
+      o.date,
+      o.time,
+      o.status,
+    ]);
+
+    const csvContent = [headers, ...rows].map((r) => r.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "orders.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleView = (item) => setViewData(item);
+  const handleEdit = (item) => setEditData(item);
+  const handleDelete = (item) => setDeleteItem(item);
+
+  const confirmDelete = (id) => {
+    setOrders((prev) => prev.filter((o) => o.id !== id));
+    setDeleteItem(null);
+  };
 
   return (
-    <>
-      {/* Mobile Menu Toggle */}
+    <div className="admin-activity">
       <button
-        className="admin-mobile-menu-toggle"
-        style={{
-          display: window.innerWidth <= 768 && !sidebarOpen ? "block" : "none",
-        }}
+        className="admin-settings-mobile-menu-toggle"
         onClick={toggleSidebar}
       >
         <svg
@@ -61,14 +133,14 @@ const OrderManagement = () => {
         </svg>
       </button>
 
-      {/* Overlay */}
       <div
-        className={`admin-sidebar-overlay ${sidebarOpen ? "open" : ""}`}
+        className={`admin-settings-sidebar-overlay ${
+          sidebarOpen ? "open" : ""
+        }`}
         onClick={toggleSidebar}
       ></div>
 
       <div className="admin-settings-layout">
-        {/* Sidebar */}
         <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`}>
           <div className="admin-brand">
             <div className="admin-logo"></div>
@@ -90,7 +162,7 @@ const OrderManagement = () => {
               to="/inventory"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Box size={18} /> Inventory
+              <Boxes size={18} /> Inventory
             </NavLink>
             <NavLink
               to="/admin-product"
@@ -118,45 +190,47 @@ const OrderManagement = () => {
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
-            
-            {/* Activity Log - Superadmin Only */}
-            {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
-              <NavLink
-                to="/activity"
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                <Activity size={18} /> Activity Log
-              </NavLink>
-            )}
-            
-            {/* Staff Management - Superadmin Only */}
-            {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
-              <NavLink
-                to="/staff-management"
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                <Users size={18} /> Staff Management
-              </NavLink>
-            )}
-            
+          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
             <NavLink
-              to="/account-settings"
+              to="/activity"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Settings size={18} /> Account Settings
+              <Activity size={18} /> Activity Log
             </NavLink>
+          )}
+
+          {/* Staff Management - Superadmin Only */}
+          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            <NavLink
+              to="/staff-management"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <Users size={18} /> Staff Management
+            </NavLink>
+          )}
+          <NavLink
+            to="/dailycollection"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            <FilePen size={18} /> Daily Collection
+          </NavLink>
+
+          <NavLink
+            to="/account-settings"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            <Settings size={18} /> Account Settings
+          </NavLink>
           </nav>
         </aside>
 
-        {/* Main Content */}
         <main className="admin-settings-content">
           <div className="admin-settings-page-title">
-            <h1>Order Management</h1>
+            <h1 className="admin-h1 mb-6">Order Management</h1>
           </div>
 
-          {/* Toolbar */}
-          <div className="admin-settings-toolbar">
-            <div className="admin-settings-search">
+          <div className="toolbar">
+            <div className="search">
               <svg
                 width="16"
                 height="16"
@@ -168,81 +242,149 @@ const OrderManagement = () => {
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.3-4.3" />
               </svg>
-              <input placeholder="Search for id, name product" />
+              <input
+                placeholder="Search for ID, name, or product"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
             <button className="btn">Filter</button>
-            <button className="btn">Export</button>
-            <NavLink to="/add-order" className="btn primary">
+            <button className="btn" onClick={exportCSV}>
+              Export CSV
+            </button>
+            <NavLink to="/add-order" className="btn btn-add">
               + Add New Order
             </NavLink>
           </div>
 
-          {/* Orders Table */}
-          <div className="admin-settings-table">
+          <div className="table">
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: 36 }}></th>
-                  <th>Product</th>
-                  <th>Name</th>
-                  <th>Receipt</th>
+                  <th></th>
+                  <th>No</th>
+                  <th>Product ID</th>
+                  <th>Product Name</th>
+                  <th>Customer</th>
                   <th>Date</th>
+                  <th>Time</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>
-                    <input type="checkbox" />
-                  </td>
-                  <td>
-                    <div className="prod">
-                      <div className="img"></div>
-                      <div>
-                        <div className="link">00231</div>
-                        <div style={{ fontSize: 12, color: "#475569" }}>
-                          Albibas Blue
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>Kim Mingyu</td>
-                  <td>
-                    <button className="btn" style={{ height: 28 }}>
-                      View Attachment
-                    </button>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: 12, color: "#334155" }}>
-                      August 22, 2025
-                      <br /> 8:25 PM
-                    </div>
-                  </td>
-                  <td>
-                    <span className="pill green">Received</span>
-                  </td>
-                  <td className="actions">
-                    <span>👁️</span>
-                    <span>✏️</span>
-                    <span>🗑️</span>
-                  </td>
-                </tr>
+                {filtered.map((o, index) => (
+                  <tr key={o._id}>
+                    <td>
+                      <input type="checkbox" />
+                    </td>
+                    <td>{index + 1}</td>
+                    <td>{o._id}</td>
+                    <td>{o.items.map((i) => i.productId?.title || i.productId?.itemName).join(", ")}</td>
+                    <td>{o.buyerName}</td>
+                    <td>{new Date(o.createdAt).toLocaleDateString()}</td>
+                    <td>{new Date(o.createdAt).toLocaleTimeString()}</td>
+                    <td>
+                      {o.status === "Received" ? (
+                        <span className="status active">Received</span>
+                      ) : (
+                        <span className="status hold">{o.status}</span>
+                      )}
+                    </td>
+                    <td>
+                      <ActionButtons
+                        onView={() => handleView(o)}
+                        onEdit={() => handleEdit(o)}
+                        onDelete={() => handleDelete(o)}
+                      />
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="admin-settings-pagination">
-            <div className="page">‹</div>
-            <div className="page active">1</div>
-            <div className="page">2</div>
-            <div className="page">3</div>
-            <div className="page">›</div>
+          <div className="pagination">
+            <button className="page-btn">‹</button>
+            <button className="page-btn active">1</button>
+            <button className="page-btn">2</button>
+            <button className="page-btn">›</button>
           </div>
+
+          {/* View Modal */}
+          <ViewModal data={viewData} onClose={() => setViewData(null)} />
+
+          {/* Edit Modal */}
+          {editData && (
+            <div className="modal-overlay">
+              <div className="modal-box max-w-md">
+                <div className="modal-header">
+                  <h2>Edit Order</h2>
+                  <button
+                    className="modal-close"
+                    onClick={() => setEditData(null)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="modal-content">
+                  <label className="form-label">Status</label>
+                  <select
+                    className="form-select mb-4"
+                    value={editData.status}
+                    onChange={(e) =>
+                      setEditData({ ...editData, status: e.target.value })
+                    }
+                  >
+                    <option>Received</option>
+                    <option>Pending</option>
+                    <option>Cancelled</option>
+                  </select>
+                  <button
+                    className="btn primary w-full"
+                    onClick={() => {
+                      setOrders((prev) =>
+                        prev.map((o) => (o.id === editData.id ? editData : o))
+                      );
+                      setEditData(null);
+                    }}
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Confirmation */}
+          {deleteItem && (
+            <div className="modal-overlay">
+              <div className="modal-box max-w-md text-center">
+                <h2 className="text-lg font-semibold mb-3">Confirm Delete</h2>
+                <p>
+                  Are you sure you want to delete order{" "}
+                  <strong>{deleteItem.productName}</strong>?
+                </p>
+                <div className="flex justify-center gap-3 mt-6">
+                  <button
+                    className="btn border"
+                    onClick={() => setDeleteItem(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn danger"
+                    onClick={() => confirmDelete(deleteItem.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
-    </>
+    </div>
   );
 };
 

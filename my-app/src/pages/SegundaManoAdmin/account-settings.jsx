@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Home,
   Box,
@@ -9,6 +9,7 @@ import {
   Activity,
   Settings,
   Users,
+  FilePen
 } from "lucide-react";
 
 import "../../css/styles.css";
@@ -16,6 +17,7 @@ import "../../css/adminsidebar.css";
 
 const AccountSettings = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -35,9 +37,10 @@ const AccountSettings = () => {
   }, []);
 
   useEffect(() => {
-    const isAuthed = sessionStorage.getItem("sg_admin_logged_in") === "true";
-    if (!isAuthed) {
-      window.location.replace("login.html");
+    const token = sessionStorage.getItem("sg_admin_token");
+    if (!token) {
+      navigate("/login");
+      return;
     }
   }, []);
 
@@ -86,9 +89,12 @@ const AccountSettings = () => {
             >
               <Home size={18} /> Dashboard
             </NavLink>
-            <NavLink to="/inventory" className={({ isActive }) => (isActive ? "active" : "")}>
-            <Box size={18} /> Inventory
-          </NavLink>
+            <NavLink
+              to="/inventory"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <Box size={18} /> Inventory
+            </NavLink>
             <NavLink
               to="/admin-product"
               className={({ isActive }) => (isActive ? "active" : "")}
@@ -115,33 +121,39 @@ const AccountSettings = () => {
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
-            
+
             {/* Activity Log - Superadmin Only */}
-            {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
-              <NavLink
-                to="/activity"
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                <Activity size={18} /> Activity Log
-              </NavLink>
-            )}
-            
-            {/* Staff Management - Superadmin Only */}
-            {sessionStorage.getItem('sg_admin_role') === 'superadmin' && (
-              <NavLink
-                to="/staff-management"
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                <Users size={18} /> Staff Management
-              </NavLink>
-            )}
-            
+          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
             <NavLink
-              to="/account-settings"
+              to="/activity"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Settings size={18} /> Account Settings
+              <Activity size={18} /> Activity Log
             </NavLink>
+          )}
+
+          {/* Staff Management - Superadmin Only */}
+          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            <NavLink
+              to="/staff-management"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <Users size={18} /> Staff Management
+            </NavLink>
+          )}
+          <NavLink
+            to="/dailycollection"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            <FilePen size={18} /> Daily Collection
+          </NavLink>
+
+          <NavLink
+            to="/account-settings"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            <Settings size={18} /> Account Settings
+          </NavLink>
           </nav>
         </aside>
 
