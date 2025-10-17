@@ -229,7 +229,7 @@ const getOrders = async (req, res) => {
   try {
     const orders = await Order.find().populate(
       "items.productId",
-      "title price"
+      "title itemName price images"
     );
     res.json(orders);
   } catch (err) {
@@ -288,15 +288,18 @@ const markOrderToReceive = async (req, res) => {
 
     if (paymentStatus) order.paymentStatus = paymentStatus;
 
-    // Move to "to receive" if paid
-    if (order.paymentStatus === "paid" && order.status === "pending") {
+    // Move to "to receive" if paid or explicitly requested
+    if ((order.paymentStatus === "paid" && order.status === "pending") || status === "to receive") {
       order.status = "to receive";
+    } else if (status && status !== "to receive") {
+      order.status = status;
     }
-    if (status && status !== "to receive") order.status = status;
 
     if (trackingNumber) order.trackingNumber = trackingNumber;
-    //voucherr
-    if (order.status === "to receive" && !order.ticketVoucher === false) {
+    // Voucher and stock deduction once when entering "to receive" and no voucher yet
+    // Deduct here for CASH (pickup) flow; for GCASH flow, deduction happens during OTP verify
+    const isCashFlow = order.paymentMethod === "cash";
+    if (order.status === "to receive" && !order.ticketVoucher && isCashFlow) {
       // Generate voucher
       const voucherCode = crypto.randomBytes(4).toString("hex").toUpperCase();
       const voucherExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 2 weeks
@@ -327,8 +330,9 @@ const markOrderToReceive = async (req, res) => {
 
       // Deduct stock
       for (const item of order.items) {
+        const qty = item.qty || item.quantity || 1;
         await Product.findByIdAndUpdate(item.productId, {
-          $inc: { quantity: -item.qty },
+          $inc: { quantity: -qty },
         });
       }
     }

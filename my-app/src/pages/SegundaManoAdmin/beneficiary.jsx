@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Home,
   Box,
@@ -15,11 +16,13 @@ import { FaEye, FaEdit, FaSync } from "react-icons/fa";
 import "../../css/adminsidebar.css";
 import { getAllBeneficiaries, updateBeneficiaryStatus } from "../../services/api";
 
+
 const Beneficiary = () => {
   const [search, setSearch] = useState("");
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchBeneficiaries();
@@ -216,7 +219,9 @@ const Beneficiary = () => {
               border: 'none',
               cursor: 'pointer',
               fontSize: '14px'
-            }}>
+            }}
+            onClick={() => navigate('/add-beneficiary')}
+            >
               + Add New
             </button>
           </div>

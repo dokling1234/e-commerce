@@ -5,6 +5,7 @@ import "../../css/styles.css";
 const MyCart = () => {
   const [navActive, setNavActive] = useState(false);
   const [cartItems, setCartItems] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
 
   const toggleMobileNav = () => {
     setNavActive(!navActive);
@@ -42,15 +43,52 @@ const MyCart = () => {
     }
   };
 
-  fetchCart();
+ const fetchSuggestions = async () => {
+  try {
+    const res = await fetch("http://localhost:5000/api/admin/products/random?limit=3", {
+      credentials: "include",
+    });
+    const data = await res.json();
+    console.log("Random products response:", data);
+    
+    if (Array.isArray(data) && data.length > 0) {
+      setSuggestions(data.slice(0, 3)); // ensure only 3
+    } else {
+      // Fallback: fetch all products and pick 3 random ones
+      console.log("No random products found, fetching all products as fallback");
+      const allRes = await fetch("http://localhost:5000/api/admin/products/customer", {
+        credentials: "include",
+      });
+      const allData = await allRes.json();
+      console.log("All products response:", allData);
+      
+      if (Array.isArray(allData) && allData.length > 0) {
+        // Filter products with quantity > 0 and pick 3 random ones
+        const availableProducts = allData.filter(p => p.quantity > 0);
+        const shuffled = [...availableProducts].sort(() => 0.5 - Math.random());
+        setSuggestions(shuffled.slice(0, 3));
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch suggestions", err);
+  }
+};
+
+
+  useEffect(() => {
+    fetchCart();
+    fetchSuggestions();
+  }, []);
   const subtotal = cartItems.reduce(
     (acc, item) => acc + (item.price || 0) * item.quantity,
     0
   );
+ 
+
 
   const handleRemoveFromCart = async (productId) => {
     try {
-      const res = await fetch(`http:localhost:5000/api/cart/remove`, {
+      const res = await fetch(`http://localhost:5000/api/cart/remove`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -65,21 +103,6 @@ const MyCart = () => {
       console.error("Failed to remove item", err);
     }
   };
-  // Suggested items
-  const suggestions = [
-    {
-      name: "Flowy Dress",
-      color: "Blue",
-      price: 200,
-      img: "https://images.unsplash.com/photo-1523381294911-8d3cead13475?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      name: "Cardigan",
-      color: "Black",
-      price: 200,
-      img: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=80",
-    },
-  ];
 
   // Calculate totals
 
@@ -157,6 +180,7 @@ const MyCart = () => {
               </div>
 
               {cartItems.map((item, i) => (
+                
                 <div className="cart-row" key={i}>
                   <div className="c-item">
                     <img
@@ -220,19 +244,26 @@ const MyCart = () => {
             You might also like:
           </h2>
           <div className="shop-grid">
-            {suggestions.map((s, i) => (
-              <Link className="p-link" to="#" key={i}>
-                <article className="p-card">
-                  <div className="p-thumb">
-                    <img src={s.img} alt={s.name} />
-                  </div>
+            {suggestions.map((product, i) => (
+              <article className="p-card" key={i}>
+                <Link to={`/product/${product._id}`} className="p-add">
+                  Add to cart
+                </Link>
+                <Link to={`/product/${product._id}`} className="p-link">
+                  <figure className="p-thumb">
+                    <img
+                      src={product.images?.[0] || ""}
+                      alt={product.itemName}
+                    />
+                  </figure>
                   <div className="p-info">
-                    <div className="p-name">{s.name}</div>
-                    <div className="p-variant">{s.color}</div>
-                    <div className="p-price">₱{s.price.toFixed(2)}</div>
+                    <div className="p-name">{product.itemName}</div>
+                    {product.size && <div className="p-variant">{product.size}</div>}
+                    <div className="p-quantity">Qty: {product.quantity}</div>
+                    <div className="p-price">₱{product.price}</div>
                   </div>
-                </article>
-              </Link>
+                </Link>
+              </article>
             ))}
           </div>
         </section>

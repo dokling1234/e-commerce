@@ -4402,6 +4402,29 @@ a.btn-add {
   margin-top: 16px;
 }
 
+/* Accept button (green) */
+.btn-accept {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #16a34a; /* green-600 */
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.05s ease;
+  font-family: inherit;
+}
+.btn-accept:hover {
+  background-color: #15803d; /* green-700 */
+}
+.btn-accept:active {
+  transform: translateY(1px);
+}
+
 /* ---------- PRODUCT LANDING SECTION ---------- */
 .product-landing {
   margin: 2.5rem auto;

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "../../css/adminsidebar.css";
+import { useNavigate } from "react-router-dom";
+import { addBeneficiary } from "../../services/api";
 
 const BeneficiaryForm = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -50,11 +53,23 @@ const BeneficiaryForm = () => {
   };
 
   // Handle submit
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("Beneficiary added successfully!");
-    console.log("Form Submitted:", formData);
-    // TODO: send formData to backend
+    try {
+      // Map form fields to API expectations
+      const payload = {
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        age: Number(formData.age) || undefined,
+        status: formData.status || "active",
+      };
+
+      await addBeneficiary(payload);
+      alert("Beneficiary added successfully!");
+      navigate("/beneficiary");
+    } catch (err) {
+      console.error("Failed to add beneficiary:", err);
+      alert(err.message || "Failed to add beneficiary");
+    }
   };
 
   return (

@@ -8,10 +8,13 @@ const {
   addProduct,
   updateProduct,
   deleteProduct,
-  getSingleProduct
+  getSingleProduct,
+  getRandomProducts,
+  getCustomerProducts
 } = require("../controllers/productController");
 //customer routes
-router.get("/customer", getProducts);
+router.get("/customer", getCustomerProducts);
+router.get("/random", getRandomProducts);
 router.get("/:id", getSingleProduct);
 
 //admin routes

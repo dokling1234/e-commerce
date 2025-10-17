@@ -270,36 +270,40 @@ const Shop = () => {
 
           {/* Main Content */}
           <section className="shop-main">
-            <h1 className="shop-title">Clothes</h1>
-            <button className="filter-toggle">Filter</button>
+  <h1 className="shop-title">Clothes</h1>
+  <button className="filter-toggle">Filter</button>
 
-            <div className="shop-grid">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((p, i) => (
-                  <article className="p-card" key={i}>
-                    <Link to={`/product/${p._id}`} className="p-add">
-                      Add to cart
-                    </Link>
-                    <Link to={`/product/${p._id}`} className="p-link">
-                      <figure className="p-thumb">
-                        <img
-                          src={p.images?.[0] || ""}
-                          alt={p.name || p.itemName}
-                        />
-                      </figure>
-                      <div className="p-info">
-                        <div className="p-name">{p.name || p.itemName}</div>
-                        {p.size && <div className="p-variant">{p.size}</div>}
-                        <div className="p-price">₱{p.price}</div>
-                      </div>
-                    </Link>
-                  </article>
-                ))
-              ) : (
-                <p>No products found for this price range.</p>
-              )}
-            </div>
-          </section>
+  <div className="shop-grid">
+    {filteredProducts.filter(p => p.quantity > 0).length > 0 ? (
+      filteredProducts
+        .filter(p => p.quantity > 0)
+        .map((p, i) => (
+          <article className="p-card" key={i}>
+            <Link to={`/product/${p._id}`} className="p-add">
+              Add to cart
+            </Link>
+            <Link to={`/product/${p._id}`} className="p-link">
+              <figure className="p-thumb">
+                <img
+                  src={p.images?.[0] || ""}
+                  alt={p.name || p.itemName}
+                />
+              </figure>
+              <div className="p-info">
+                <div className="p-name">{p.name || p.itemName}</div>
+                {p.size && <div className="p-variant">{p.size}</div>}
+                <div className="p-quantity">Qty: {p.quantity}</div>
+                <div className="p-price">₱{p.price}</div>
+              </div>
+            </Link>
+          </article>
+        ))
+    ) : (
+      <p>No products found for this price range.</p>
+    )}
+  </div>
+</section>
+
         </div>
       </main>
 
