@@ -7,7 +7,7 @@ const ThankYou = () => {
   const [navActive, setNavActive] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
   const location = useLocation();
-  const { orderId } = location.state || {};
+  const { orderId, voucherCode } = location.state || {};
 
   // prevent body scroll when mobile nav is active
   useEffect(() => {
@@ -33,10 +33,12 @@ const ThankYou = () => {
               type: data.order.orderType,
               address: data.order.address,
               impact: data.order.impact,
+              code: voucherCode || data.order.code, 
             });
           }
         });
     }
+    console.log("Order ID:", orderId);
   }, [orderId]);
   return (
     <>

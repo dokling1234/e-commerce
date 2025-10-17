@@ -37,7 +37,8 @@ export default function Checkout() {
     document.body.style.overflow = "";
   };
 
-  useEffect(() => { // resize
+  useEffect(() => {
+    // resize
     const handleResize = () => {
       if (window.innerWidth > 900) closeMobileNav();
     };
@@ -45,7 +46,8 @@ export default function Checkout() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const fetchCart = async () => { // get cart
+  const fetchCart = async () => {
+    // get cart
     try {
       const res = await fetch(`http://localhost:5000/api/cart/get`, {
         credentials: "include",
@@ -63,7 +65,8 @@ export default function Checkout() {
 
   fetchCart();
   //total ng cart
-  const subtotal = cartItems.reduce( // subtotal
+  const subtotal = cartItems.reduce(
+    // subtotal
     (acc, item) =>
       acc +
       (item.price || item.unitPrice || 0) * (item.quantity || item.qty || 1),
@@ -72,7 +75,8 @@ export default function Checkout() {
   const total = subtotal - discount;
 
   // Apply voucher
-  const applyVoucher = () => { // voucher
+  const applyVoucher = () => {
+    // voucher
     if (voucher.trim().toUpperCase() === "DISCOUNT50") {
       setDiscount(50);
     } else {
@@ -82,7 +86,7 @@ export default function Checkout() {
   };
 
   // Handle Place Order
-  const handlePlaceOrder = async () => { // placeorder
+  const handlePlaceOrder = async () => {
     if (!firstName || !lastName || !phone || !email) {
       alert("Please fill out all contact information.");
       return;
@@ -122,16 +126,30 @@ export default function Checkout() {
         return;
       }
 
-      if (data.message.includes("OTP sent")) {
+      // 🔹 If OTP required
+      if (data.requiresOtp) {
         alert("OTP sent to your email. Please verify.");
         setOrderId(data.orderId);
         setOtpModalOpen(true);
-      } else {
-        alert("Order created successfully!");
-        console.log("Order ID:", data.orderId);
-
-        navigate("/thank-you", { state: { email, orderId: data.orderId } });
+        return;
       }
+
+      // 🔹 If voucher issued
+      if (data.voucherCode) {
+        navigate("/thankyou", {
+          state: {
+            email,
+            orderId: data.orderId,
+            voucherCode: data.voucherCode,
+            order: data.order,
+          },
+        });
+        return;
+      }
+
+      // 🔹 Fallback
+      alert("Order created successfully!");
+      navigate("/thankyou", { state: { email, orderId: data.orderId } });
     } catch (err) {
       console.error(err);
       alert("Server error while creating order.");
@@ -139,7 +157,8 @@ export default function Checkout() {
   };
 
   // OTP submit handler
-  const handleOtpSubmit = async () => { // otp submit
+  const handleOtpSubmit = async () => {
+    // otp submit
     try {
       const response = await fetch(
         "http://localhost:5000/api/admin/orders/verify-otp",
@@ -170,7 +189,8 @@ export default function Checkout() {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [receiptFile, setReceiptFile] = useState(null);
 
-  const handleReceiptUpload = (e) => { // receipt upload
+  const handleReceiptUpload = (e) => {
+    // receipt upload
     setReceiptFile(e.target.files[0]);
   };
 
