@@ -103,16 +103,39 @@ const Landing = () => {
 
     const fetchProducts = async () => {
       try {
+        // Fetch all products
         const res = await fetch(
-          "http://localhost:5000/api/admin/products/customer"
+          "http://localhost:5000/api/admin/products/customer",
+          {
+            credentials: "include",
+          }
         );
         if (!res.ok) throw new Error("Failed to fetch products");
         const data = await res.json();
-        console.log(data);
+
+        // Fetch cart session
+        const cartRes = await fetch("http://localhost:5000/api/cart/get", {
+          credentials: "include",
+        });
+        const cartData = cartRes.ok ? await cartRes.json() : { cart: [] };
+
+        // Adjust stock based on cart reservations
+        const adjustedProducts = data.map((prod) => {
+          const itemInCart = cartData.cart?.find(
+            (item) => item.productId === prod._id
+          );
+          const reservedQty = itemInCart?.quantity || 0;
+          return {
+            ...prod,
+            quantity: Math.max((prod.quantity || 0) - reservedQty, 0),
+          };
+        });
 
         // Shuffle products randomly
-        const shuffled = data.sort(() => 0.5 - Math.random());
-        setProducts(shuffled);
+        const shuffled = adjustedProducts.sort(() => 0.5 - Math.random());
+
+        // Optional: Hide products with zero current stock
+        setProducts(shuffled.filter((p) => p.quantity > 0));
       } catch (err) {
         console.error(err);
         alert("Failed to load products. Check console for details.");

@@ -33,7 +33,6 @@ const OrderManagement = () => {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   useEffect(() => {
-    console.log(process.env.REACT_APP_API_URL);
     const token = sessionStorage.getItem("sg_admin_token");
     if (!token) {
       navigate("/login");
@@ -46,13 +45,10 @@ const OrderManagement = () => {
     const fetchOrders = async () => {
       try {
         const token = sessionStorage.getItem("sg_admin_token");
-        console.log(token);
-        console.log(process.env.REACT_APP_API_URL);
         const res = await fetch(`http://localhost:5000/api/admin/orders`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        console.log(data);
         setOrders(data);
       } catch (error) {
         console.error("Error fetching orders", error);

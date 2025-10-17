@@ -103,71 +103,74 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-  fetchData();
+    fetchData();
 
-  // Auto-refresh every 30 seconds
-  const interval = setInterval(fetchData, 30000);
-  return () => clearInterval(interval);
-}, []);
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-const fetchData = async () => {
-  try {
-    const token = sessionStorage.getItem("sg_admin_token");
+  const fetchData = async () => {
+    try {
+      const token = sessionStorage.getItem("sg_admin_token");
 
-    // Fetch products
-    const productRes = await fetch("http://localhost:5000/api/admin/products", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const productsData = await productRes.json();
-    setProducts(productsData);
+      // Fetch products
+      const productRes = await fetch(
+        "http://localhost:5000/api/admin/products",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const productsData = await productRes.json();
+      setProducts(productsData);
 
-    // Fetch inventory (or you can merge with products if same endpoint)
-    const inventoryRes = await fetch("http://localhost:5000/api/admin/inventory", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const inventoryData = await inventoryRes.json();
-    setInventory(inventoryData);
+      // Fetch inventory (or you can merge with products if same endpoint)
+      const inventoryRes = await fetch(
+        "http://localhost:5000/api/admin/inventory",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const inventoryData = await inventoryRes.json();
+      setInventory(inventoryData);
 
-    // Combine activities
-    const productActivities = productsData
-      .slice(-5)
-      .map((p) => ({
+      // Combine activities
+      const productActivities = productsData.slice(-5).map((p) => ({
         id: p._id,
         text: `Product updated: ${p.name || p.itemName}`,
         time: TimeAgo(p.updatedAt || p.createdAt),
       }));
 
-    const inventoryActivities = inventoryData
-      .slice(-5)
-      .map((i) => ({
+      const inventoryActivities = inventoryData.slice(-5).map((i) => ({
         id: i._id,
         text: `Inventory updated: ${i.productName || i.itemName}`,
         time: TimeAgo(i.updatedAt || i.createdAt),
       }));
 
-    // Merge and sort by date descending
-    const mergedActivities = [...productActivities, ...inventoryActivities].sort(
-      (a, b) => new Date(b.timeRaw) - new Date(a.timeRaw)
-    );
+      // Merge and sort by date descending
+      const mergedActivities = [
+        ...productActivities,
+        ...inventoryActivities,
+      ].sort((a, b) => new Date(b.timeRaw) - new Date(a.timeRaw));
 
-    // Take latest 5
-    setActivities(mergedActivities.slice(0, 5));
-  } catch (err) {
-    console.error("Failed to fetch products/inventory:", err);
-  }
-};
+      // Take latest 5
+      setActivities(mergedActivities.slice(0, 5));
+    } catch (err) {
+      console.error("Failed to fetch products/inventory:", err);
+    }
+  };
 
-// Helper to convert timestamp to readable "time ago"
-const TimeAgo = (date) => {
-  const diff = Date.now() - new Date(date).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes} minutes ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hours ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} days ago`;
-};
+  // Helper to convert timestamp to readable "time ago"
+  const TimeAgo = (date) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes} minutes ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hours ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} days ago`;
+  };
   const fetchOrders = async () => {
     try {
       const token = sessionStorage.getItem("sg_admin_token");
@@ -207,7 +210,6 @@ const TimeAgo = (date) => {
     try {
       setLoading(true);
       const response = await getAnalytics();
-      console.log("Analytics response:", response);
       if (response.success) {
         setAnalytics(response.data);
         setError(null);
@@ -232,21 +234,30 @@ const TimeAgo = (date) => {
 
   const displayRole = userRole.charAt(0).toUpperCase() + userRole.slice(1); // Capitalize first letter
 
+  const salesByDay = {
+    Sunday: 0,
+    Monday: 0,
+    Tuesday: 0,
+    Wednesday: 0,
+    Thursday: 0,
+    Friday: 0,
+    Saturday: 0,
+  };
+
+  orders.forEach((order) => {
+    const day = new Date(order.createdAt).toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+    salesByDay[day] += order.total;
+  });
+
   // Line chart (Sales Analytics)
   const lineData = {
-    labels: [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ],
+    labels: Object.keys(salesByDay), // ["Sunday", "Monday", ...]
     datasets: [
       {
         label: "Orders",
-        data: [120, 155, 100, 80, 130, 170, 200],
+        data: Object.values(salesByDay), // [500, 300, ...]
         fill: true,
         borderColor: "#3b82f6",
         backgroundColor: (ctx) => {

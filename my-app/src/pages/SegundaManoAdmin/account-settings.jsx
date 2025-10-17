@@ -9,7 +9,7 @@ import {
   Activity,
   Settings,
   Users,
-  FilePen
+  FilePen,
 } from "lucide-react";
 
 import "../../css/styles.css";
@@ -17,6 +17,16 @@ import "../../css/adminsidebar.css";
 
 const AccountSettings = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [adminInfo, setAdminInfo] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    role: "",
+    bio: "",
+    language: "English",
+    timezone: "UTC-5 (Eastern Time)",
+    notifications: "All notifications",
+  });
   const navigate = useNavigate();
 
   const toggleSidebar = () => {
@@ -44,6 +54,62 @@ const AccountSettings = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const fetchAdminInfo = async () => {
+      const token = sessionStorage.getItem("sg_admin_token");
+      if (!token) return;
+
+      try {
+        const res = await fetch("http://localhost:5000/api/admin/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to fetch admin info");
+        const data = await res.json();
+
+        setAdminInfo({
+          fullName: data.fullName || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          role: data.role || "Administrator",
+          bio: data.bio || "",
+          language: data.language || "English",
+          timezone: data.timezone || "UTC-5 (Eastern Time)",
+          notifications: data.notifications || "All notifications",
+        });
+        console.log(adminInfo);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchAdminInfo();
+  }, []);
+
+  const handleSaveChanges = async () => {
+    const token = sessionStorage.getItem("sg_admin_token");
+    try {
+      const res = await fetch("http://localhost:5000/api/admin/auth/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(adminInfo),
+      });
+
+      if (!res.ok) throw new Error("Failed to update account");
+      alert("Account updated successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update account. Check console for details.");
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("sg_admin_token"); // or localStorage
+    sessionStorage.removeItem("sg_admin_role");
+    navigate("/login");
+  };
   return (
     <>
       {/* Mobile Menu Toggle */}
@@ -123,37 +189,37 @@ const AccountSettings = () => {
             <div className="admin-section-title">TOOLS</div>
 
             {/* Activity Log - Superadmin Only */}
-          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/activity"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Activity size={18} /> Activity Log
+              </NavLink>
+            )}
+
+            {/* Staff Management - Superadmin Only */}
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/staff-management"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Users size={18} /> Staff Management
+              </NavLink>
+            )}
             <NavLink
-              to="/activity"
+              to="/dailycollection"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Activity size={18} /> Activity Log
+              <FilePen size={18} /> Daily Collection
             </NavLink>
-          )}
 
-          {/* Staff Management - Superadmin Only */}
-          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
             <NavLink
-              to="/staff-management"
+              to="/account-settings"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Users size={18} /> Staff Management
+              <Settings size={18} /> Account Settings
             </NavLink>
-          )}
-          <NavLink
-            to="/dailycollection"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            <FilePen size={18} /> Daily Collection
-          </NavLink>
-
-          <NavLink
-            to="/account-settings"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            <Settings size={18} /> Account Settings
-          </NavLink>
           </nav>
         </aside>
 
@@ -188,7 +254,10 @@ const AccountSettings = () => {
                   <input
                     type="text"
                     className="admin-settings-form-input"
-                    defaultValue="Admin User"
+                    value={adminInfo.fullName}
+                    onChange={(e) =>
+                      setAdminInfo({ ...adminInfo, fullName: e.target.value })
+                    }
                   />
                 </div>
 
@@ -199,7 +268,10 @@ const AccountSettings = () => {
                   <input
                     type="email"
                     className="admin-settings-form-input"
-                    defaultValue="admin@segundamana.com"
+                    value={adminInfo.email}
+                    onChange={(e) =>
+                      setAdminInfo({ ...adminInfo, email: e.target.value })
+                    }
                   />
                 </div>
 
@@ -210,7 +282,10 @@ const AccountSettings = () => {
                   <input
                     type="tel"
                     className="admin-settings-form-input"
-                    defaultValue="+1 (555) 123-4567"
+                    value={adminInfo.phone}
+                    onChange={(e) =>
+                      setAdminInfo({ ...adminInfo, phone: e.target.value })
+                    }
                   />
                 </div>
 
@@ -218,19 +293,25 @@ const AccountSettings = () => {
                   <label className="admin-settings-form-label">Role</label>
                   <select
                     className="admin-settings-form-select"
-                    defaultValue="Administrator"
+                    value={adminInfo.role}
+                    onChange={(e) =>
+                      setAdminInfo({ ...adminInfo, role: e.target.value })
+                    }
                   >
                     <option>Administrator</option>
-                    <option>Manager</option>
-                    <option>Staff</option>
+                    <option>staff</option>
                   </select>
                 </div>
 
                 <div className="admin-settings-form-group">
                   <label className="admin-settings-form-label">Bio</label>
+
                   <textarea
                     className="admin-settings-form-textarea"
-                    defaultValue="Experienced administrator with expertise in e-commerce management and customer service."
+                    value={adminInfo.bio}
+                    onChange={(e) =>
+                      setAdminInfo({ ...adminInfo, bio: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -275,7 +356,7 @@ const AccountSettings = () => {
                 </div>
 
                 <div className="admin-settings-form-group">
-                  <label className="admin-settings-form-label">
+                  {/* <label className="admin-settings-form-label">
                     Two-Factor Authentication
                   </label>
                   <select
@@ -284,12 +365,12 @@ const AccountSettings = () => {
                   >
                     <option>Enabled</option>
                     <option>Disabled</option>
-                  </select>
+                  </select> */}
                 </div>
               </div>
 
               {/* Preferences */}
-              <div className="admin-settings-settings-card">
+              {/* <div className="admin-settings-settings-card">
                 <div className="admin-settings-card-title">Preferences</div>
 
                 <div className="admin-settings-form-group">
@@ -329,7 +410,7 @@ const AccountSettings = () => {
                     <option>None</option>
                   </select>
                 </div>
-              </div>
+              </div> */}
 
               {/* Actions */}
               <div className="admin-settings-actions">
@@ -406,6 +487,14 @@ const AccountSettings = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+              <div
+                className="admin-settings-logout"
+                style={{ marginTop: "16px" }}
+              >
+                <button className="btn danger w-full" onClick={handleLogout}>
+                  Logout
+                </button>
               </div>
             </aside>
           </div>

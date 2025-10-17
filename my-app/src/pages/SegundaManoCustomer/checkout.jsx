@@ -43,27 +43,29 @@ export default function Checkout() {
       if (window.innerWidth > 900) closeMobileNav();
     };
     window.addEventListener("resize", handleResize);
+
+    const fetchCart = async () => {
+      // get cart
+      try {
+        const res = await fetch(`http://localhost:5000/api/cart/get`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (data.success) {
+          setCartItems(data.cart);
+        } else {
+          setCartItems([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch cart", err);
+      }
+    };
+
+    fetchCart();
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const fetchCart = async () => {
-    // get cart
-    try {
-      const res = await fetch(`http://localhost:5000/api/cart/get`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCartItems(data.cart);
-      } else {
-        setCartItems([]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch cart", err);
-    }
-  };
-
-  fetchCart();
   //total ng cart
   const subtotal = cartItems.reduce(
     // subtotal
@@ -73,7 +75,13 @@ export default function Checkout() {
     0
   );
   const total = subtotal - discount;
-
+  const clearCart = async () => {
+    await fetch("http://localhost:5000/api/cart/clear", {
+      method: "POST",
+      credentials: "include",
+    });
+    setCartItems([]); // Clear frontend state too
+  };
   // Apply voucher
   const applyVoucher = () => {
     // voucher
@@ -136,6 +144,8 @@ export default function Checkout() {
 
       // 🔹 If voucher issued
       if (data.voucherCode) {
+        await clearCart();
+
         navigate("/thankyou", {
           state: {
             email,
@@ -170,13 +180,20 @@ export default function Checkout() {
       );
 
       const data = await response.json();
-
+      console.log(data);
       if (response.ok && data.success) {
         alert("OTP verified! Redirecting to Thank You page...");
         setOtpModalOpen(false);
+        await clearCart();
         setEmailVerified(true);
-
-        navigate("/thankyou", { state: { email, orderId: data.orderId } });
+        navigate("/thankyou", {
+          state: {
+            email,
+            orderId: data.order._id,
+            voucherCode: data.order.ticketVoucher.code,
+            order: data.order,
+          },
+        });
       } else {
         alert(data.message || "Invalid OTP");
       }

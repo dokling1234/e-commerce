@@ -43,37 +43,54 @@ const MyCart = () => {
     }
   };
 
- const fetchSuggestions = async () => {
-  try {
-    const res = await fetch("http://localhost:5000/api/admin/products/random?limit=3", {
-      credentials: "include",
-    });
-    const data = await res.json();
-    console.log("Random products response:", data);
-    
-    if (Array.isArray(data) && data.length > 0) {
-      setSuggestions(data.slice(0, 3)); // ensure only 3
-    } else {
-      // Fallback: fetch all products and pick 3 random ones
-      console.log("No random products found, fetching all products as fallback");
-      const allRes = await fetch("http://localhost:5000/api/admin/products/customer", {
+  const fetchSuggestions = async () => {
+    try {
+      // 🔹 Fetch random or fallback products
+      let res = await fetch(
+        "http://localhost:5000/api/admin/products/random?limit=3",
+        {
+          credentials: "include",
+        }
+      );
+      let data = await res.json();
+
+      if (!Array.isArray(data) || data.length === 0) {
+        // Fallback: fetch all products
+        const allRes = await fetch(
+          "http://localhost:5000/api/admin/products/customer",
+          {
+            credentials: "include",
+          }
+        );
+        data = await allRes.json();
+      }
+
+      // 🔹 Fetch current cart session
+      const cartRes = await fetch("http://localhost:5000/api/cart/get", {
         credentials: "include",
       });
-      const allData = await allRes.json();
-      console.log("All products response:", allData);
-      
-      if (Array.isArray(allData) && allData.length > 0) {
-        // Filter products with quantity > 0 and pick 3 random ones
-        const availableProducts = allData.filter(p => p.quantity > 0);
-        const shuffled = [...availableProducts].sort(() => 0.5 - Math.random());
-        setSuggestions(shuffled.slice(0, 3));
-      }
-    }
-  } catch (err) {
-    console.error("Failed to fetch suggestions", err);
-  }
-};
+      const cartData = cartRes.ok ? await cartRes.json() : { cart: [] };
 
+      // 🔹 Adjust suggestions based on reserved quantities
+      const adjustedSuggestions = data.map((prod) => {
+        const itemInCart = cartData.cart?.find(
+          (item) => item.productId === prod._id
+        );
+        const reservedQty = itemInCart?.quantity || 0;
+        return {
+          ...prod,
+          quantity: Math.max((prod.quantity || 0) - reservedQty, 0),
+        };
+      });
+
+      // 🔹 Filter out items with 0 stock and limit to 3
+      setSuggestions(
+        adjustedSuggestions.filter((p) => p.quantity > 0).slice(0, 3)
+      );
+    } catch (err) {
+      console.error("Failed to fetch suggestions", err);
+    }
+  };
 
   useEffect(() => {
     fetchCart();
@@ -83,8 +100,6 @@ const MyCart = () => {
     (acc, item) => acc + (item.price || 0) * item.quantity,
     0
   );
- 
-
 
   const handleRemoveFromCart = async (productId) => {
     try {
@@ -180,7 +195,6 @@ const MyCart = () => {
               </div>
 
               {cartItems.map((item, i) => (
-                
                 <div className="cart-row" key={i}>
                   <div className="c-item">
                     <img
@@ -246,8 +260,11 @@ const MyCart = () => {
           <div className="shop-grid">
             {suggestions.map((product, i) => (
               <article className="p-card" key={i}>
-                <Link to={`/product/${product._id}`} className="p-add">
-                  Add to cart
+                <Link
+                  to={product.quantity > 0 ? `/product/${product._id}` : "#"}
+                  className={`p-add ${product.quantity <= 0 ? "disabled" : ""}`}
+                >
+                  {product.quantity > 0 ? "Add to cart" : "Out of Stock"}
                 </Link>
                 <Link to={`/product/${product._id}`} className="p-link">
                   <figure className="p-thumb">
@@ -258,7 +275,9 @@ const MyCart = () => {
                   </figure>
                   <div className="p-info">
                     <div className="p-name">{product.itemName}</div>
-                    {product.size && <div className="p-variant">{product.size}</div>}
+                    {product.size && (
+                      <div className="p-variant">{product.size}</div>
+                    )}
                     <div className="p-quantity">Qty: {product.quantity}</div>
                     <div className="p-price">₱{product.price}</div>
                   </div>

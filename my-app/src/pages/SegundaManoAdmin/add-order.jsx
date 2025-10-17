@@ -77,7 +77,6 @@ const AddOrder = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     alert("Order added successfully!");
-    console.log("Order Submitted:", { ...formData, subtotal, shippingFee, grandTotal });
   };
 
   return (

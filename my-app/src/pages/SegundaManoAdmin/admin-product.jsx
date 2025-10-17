@@ -10,7 +10,7 @@ import {
   Settings,
   FilePen,
   Boxes,
-  Users
+  Users,
 } from "lucide-react";
 import "../../css/styles.css";
 import "../../css/adminsidebar.css";
@@ -23,6 +23,8 @@ const AdminProduct = () => {
   const [viewData, setViewData] = useState(null);
   const [editData, setEditData] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
@@ -54,7 +56,6 @@ const AdminProduct = () => {
         if (!res.ok) throw new Error("Failed to fetch products");
 
         const data = await res.json();
-        console.log(data);
         setProducts(data); // Make sure data is an array of products
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -66,11 +67,11 @@ const AdminProduct = () => {
 
   const filtered = products.filter((p) => {
     const q = search.trim().toLowerCase();
-    if (!q) return true; 
+    if (!q) return true;
 
     return (
       (p.arRef || "").toLowerCase().includes(q) ||
-      (p.name || "").toLowerCase().includes(q) ||
+      (p.itemName || "").toLowerCase().includes(q) ||
       (p.category || "").toLowerCase().includes(q) ||
       (p.size || "").toLowerCase().includes(q)
     );
@@ -99,7 +100,7 @@ const AdminProduct = () => {
         [
           p.id,
           `"${p.arRef}"`,
-          `"${p.name}"`,
+          `"${p.itemName}"`,
           p.category,
           p.size,
           p.price,
@@ -131,6 +132,12 @@ const AdminProduct = () => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
     setDeleteItem(null);
   };
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const displayedRows = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="admin-activity">
@@ -205,37 +212,37 @@ const AdminProduct = () => {
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
-          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/activity"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Activity size={18} /> Activity Log
+              </NavLink>
+            )}
+
+            {/* Staff Management - Superadmin Only */}
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/staff-management"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Users size={18} /> Staff Management
+              </NavLink>
+            )}
             <NavLink
-              to="/activity"
+              to="/dailycollection"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Activity size={18} /> Activity Log
+              <FilePen size={18} /> Daily Collection
             </NavLink>
-          )}
 
-          {/* Staff Management - Superadmin Only */}
-          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
             <NavLink
-              to="/staff-management"
+              to="/account-settings"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Users size={18} /> Staff Management
+              <Settings size={18} /> Account Settings
             </NavLink>
-          )}
-          <NavLink
-            to="/dailycollection"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            <FilePen size={18} /> Daily Collection
-          </NavLink>
-
-          <NavLink
-            to="/account-settings"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            <Settings size={18} /> Account Settings
-          </NavLink>
           </nav>
         </aside>
 
@@ -289,7 +296,7 @@ const AdminProduct = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
+                {displayedRows.map((p) => (
                   <tr key={p.id}>
                     <td>
                       <input type="checkbox" />
@@ -324,10 +331,31 @@ const AdminProduct = () => {
           </div>
 
           <div className="pagination">
-            <button className="page-btn">‹</button>
-            <button className="page-btn active">1</button>
-            <button className="page-btn">2</button>
-            <button className="page-btn">›</button>
+            <button
+              className="page-btn"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => prev - 1)}
+            >
+              ‹
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+              <button
+                key={num}
+                className={`page-btn ${num === currentPage ? "active" : ""}`}
+                onClick={() => setCurrentPage(num)}
+              >
+                {num}
+              </button>
+            ))}
+
+            <button
+              className="page-btn"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((prev) => prev + 1)}
+            >
+              ›
+            </button>
           </div>
 
           <ViewModal data={viewData} onClose={() => setViewData(null)} />

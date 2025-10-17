@@ -15,7 +15,6 @@ function Login() {
   }, []);
 
   const handleSubmit = async (e) => {
-    console.log("Submitting");
     e.preventDefault();
     setError("");
 

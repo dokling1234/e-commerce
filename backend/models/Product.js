@@ -18,4 +18,5 @@ const ProductSchema = new mongoose.Schema({
   arRef: { type: String, required: true, unique: true } 
 }, { timestamps: true });
 
-module.exports = mongoose.model("Product", ProductSchema);
+module.exports = mongoose.models.Product || mongoose.model("Product", ProductSchema);
+

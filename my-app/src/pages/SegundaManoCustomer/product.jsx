@@ -6,6 +6,7 @@ const Product = () => {
   const [navActive, setNavActive] = useState(false);
   const [products, setProducts] = useState([]);
   const { productId } = useParams();
+  const [cartMessage, setCartMessage] = useState("");
 
   const toggleMobileNav = () => {
     setNavActive(!navActive);
@@ -18,7 +19,6 @@ const Product = () => {
   };
 
   useEffect(() => {
-    console.log("Product component mounted");
     const handleResize = () => {
       if (window.innerWidth > 900) {
         closeMobileNav();
@@ -30,21 +30,40 @@ const Product = () => {
   }, []);
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      console.log("Fetching product with ID:", productId);
+    const fetchProductAndCart = async () => {
       try {
+        // 1️⃣ Fetch product from backend
         const res = await fetch(
           `http://localhost:5000/api/admin/products/${productId}`
         );
         const data = await res.json();
-        setProducts([data]);
-        setMainImage(data.images?.[0] || "");
+
+        // 2️⃣ Fetch user's cart session
+        const cartRes = await fetch("http://localhost:5000/api/cart/get", {
+          credentials: "include",
+        });
+        const cartData = await cartRes.json();
+
+        // 3️⃣ Check how many of this product are already in the cart
+        const itemInCart = cartData.cart?.find(
+          (item) => item.productId === productId
+        );
+        const reservedQty = itemInCart?.quantity || 0;
+
+        // 4️⃣ Subtract reservedQty from DB stock so UI reflects reality
+        const adjustedProduct = {
+          ...data,
+          quantity: Math.max((data.quantity || 0) - reservedQty, 0),
+        };
+
+        setProducts([adjustedProduct]);
+        setMainImage(adjustedProduct.images?.[0] || "");
       } catch (err) {
         console.error("Failed to load product", err);
       }
     };
 
-    if (productId) fetchProduct();
+    if (productId) fetchProductAndCart();
   }, [productId]);
 
   // ✅ Image thumbnails + dynamic main image
@@ -78,7 +97,21 @@ const Product = () => {
       });
 
       const data = await res.json();
-      if (data.success) console.log("Added to cart", data.cart);
+
+      if (data.success) {
+        // ✅ Reduce quantity locally (UI updates instantly)
+        setProducts((prevProducts) =>
+          prevProducts.map((p) =>
+            p._id === product._id
+              ? { ...p, quantity: Math.max((p.quantity || 0) - 1, 0) }
+              : p
+          )
+        );
+        setCartMessage(`${product.name || product.itemName} added to cart!`);
+        setTimeout(() => setCartMessage(""), 3000);
+      } else {
+        alert(data.message || "Failed to add to cart");
+      }
     } catch (err) {
       console.error("Error adding to cart", err);
     }
@@ -86,6 +119,7 @@ const Product = () => {
 
   return (
     <div>
+      {cartMessage && <div className="cart-popup">{cartMessage}</div>}
       {/* ✅ Header */}
       <header className="site-header">
         <div className="container header-grid">
@@ -168,22 +202,28 @@ const Product = () => {
           </p>
 
           <div className="pd-price">₱{product?.price || "0.00"}</div>
-
+          <div className="pd-qty">
+            <strong>Quantity Available:</strong> {product?.quantity ?? 0}
+          </div>
           <div className="pd-field">
-            <label>Measurements</label>
+            <label>Size</label>
             <select className="pd-select">
-              {product?.sizes?.length
-                ? product.sizes.map((size, i) => (
-                    <option key={i}>{size}</option>
-                  ))
-                : ["Small", "Medium", "Large"].map((size) => (
-                    <option key={size}>{size}</option>
-                  ))}
+              {product?.size ? (
+                <option>{product.size}</option> // Only one size available
+              ) : product?.sizes?.length ? (
+                product.sizes.map((size, i) => <option key={i}>{size}</option>)
+              ) : (
+                <option disabled>No size available</option>
+              )}
             </select>
           </div>
 
-          <button className="pd-btn" onClick={() => handleAddToCart(product)}>
-            Add to Cart
+          <button
+            className="pd-btn"
+            onClick={() => handleAddToCart(product)}
+            disabled={product?.quantity <= 0}
+          >
+            {product?.quantity > 0 ? "Add to Cart" : "Out of Stock"}
           </button>
 
           <div className="pd-meta">

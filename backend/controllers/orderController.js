@@ -1,5 +1,5 @@
 const Order = require("../models/Order");
-const Product = require("../models/product");
+const Product = require("../models/Product");
 const knapsack = require("../helper/knapsack");
 const transporter = require("../config/transporter");
 const VerifiedEmail = require("../models/verifiedEmail");
@@ -18,24 +18,31 @@ const createOrder = async (req, res) => {
       buyerEmail,
       items: rawItems,
       paymentMethod, // cash/gcash
-      orderType,     // delivery/pickup
-      address,       // for delivery
+      orderType, // delivery/pickup
+      address, // for delivery
     } = req.body;
 
     const proofOfPayment = req.file ? req.file.path : null;
 
-    console.log("Req.body:", req.body);
 
     if (!paymentMethod) {
-      return res.status(400).json({ message: "Payment method is required (cash or gcash)" });
+      return res
+        .status(400)
+        .json({ message: "Payment method is required (cash or gcash)" });
     }
 
     if (paymentMethod === "gcash" && !proofOfPayment) {
-      return res.status(400).json({ message: "Proof of payment is required for GCash transactions" });
+      return res
+        .status(400)
+        .json({
+          message: "Proof of payment is required for GCash transactions",
+        });
     }
 
     if (orderType === "delivery" && !address) {
-      return res.status(400).json({ message: "Address is required for delivery" });
+      return res
+        .status(400)
+        .json({ message: "Address is required for delivery" });
     }
 
     // Build items
@@ -104,7 +111,10 @@ const createOrder = async (req, res) => {
       newOrder.otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
       await newOrder.save();
 
-      const htmlContent = VERIFY_TEMPLATE.replace("{{email}}", buyerEmail).replace("{{otp}}", otp);
+      const htmlContent = VERIFY_TEMPLATE.replace(
+        "{{email}}",
+        buyerEmail
+      ).replace("{{otp}}", otp);
 
       await transporter.sendMail({
         from: process.env.SENDER_EMAIL,
@@ -113,7 +123,6 @@ const createOrder = async (req, res) => {
         html: htmlContent,
       });
 
-      console.log("OTP email sent to:", buyerEmail);
 
       return res.status(200).json({
         message: "OTP sent",
@@ -129,7 +138,17 @@ const createOrder = async (req, res) => {
     newOrder.ticketVoucher = { code: voucherCode, expiresAt: voucherExpiry };
     await newOrder.save();
 
-    const voucherEmail = VOUCHER_TEMPLATE.replace("{{email}}", buyerEmail).replace("{{otp}}", voucherCode);
+    for (const item of newOrder.items) {
+      const qty = item.qty || item.quantity || 1;
+      await Product.findByIdAndUpdate(item.productId, {
+        $inc: { quantity: -qty },
+      });
+    }
+
+    const voucherEmail = VOUCHER_TEMPLATE.replace(
+      "{{email}}",
+      buyerEmail
+    ).replace("{{otp}}", voucherCode);
 
     await transporter.sendMail({
       from: process.env.SENDER_EMAIL,
@@ -138,7 +157,6 @@ const createOrder = async (req, res) => {
       html: voucherEmail,
     });
 
-    console.log("Voucher email sent to:", buyerEmail);
 
     return res.status(200).json({
       success: true,
@@ -150,7 +168,6 @@ const createOrder = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 
 //manual verify otp
 const verifyOrderOTP = async (req, res) => {
@@ -209,7 +226,6 @@ const verifyOrderOTP = async (req, res) => {
         html: htmlContent,
       });
 
-      console.log("Voucher email sent successfully to:", order.buyerEmail);
     }
 
     await order.save();
@@ -268,7 +284,6 @@ const updateOrderStatus = async (req, res) => {
 
 //pending => to receive
 const markOrderToReceive = async (req, res) => {
-  console.log("markOrderToReceive called");
   try {
     const { id } = req.params;
     const { status, trackingNumber, paymentStatus } = req.body;
@@ -288,16 +303,16 @@ const markOrderToReceive = async (req, res) => {
 
     if (paymentStatus) order.paymentStatus = paymentStatus;
 
-    // Move to "to receive" if paid or explicitly requested
-    if ((order.paymentStatus === "paid" && order.status === "pending") || status === "to receive") {
+    if (
+      (order.paymentStatus === "paid" && order.status === "pending") ||
+      status === "to receive"
+    ) {
       order.status = "to receive";
     } else if (status && status !== "to receive") {
       order.status = status;
     }
 
     if (trackingNumber) order.trackingNumber = trackingNumber;
-    // Voucher and stock deduction once when entering "to receive" and no voucher yet
-    // Deduct here for CASH (pickup) flow; for GCASH flow, deduction happens during OTP verify
     const isCashFlow = order.paymentMethod === "cash";
     if (order.status === "to receive" && !order.ticketVoucher && isCashFlow) {
       // Generate voucher
@@ -309,9 +324,8 @@ const markOrderToReceive = async (req, res) => {
         expiresAt: voucherExpiry,
       };
 
-      // Voucher check
-      console.log("Ticket Voucher");
-      console.log("Sending voucher");
+      
+
 
       // Send voucher email
       const htmlContent = VOUCHER_TEMPLATE.replace(
@@ -326,7 +340,6 @@ const markOrderToReceive = async (req, res) => {
         html: htmlContent,
       });
 
-      console.log("Voucher email sent successfully to:", order.buyerEmail);
 
       // Deduct stock
       for (const item of order.items) {

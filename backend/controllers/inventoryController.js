@@ -14,7 +14,6 @@ const getInventory = async (req, res) => {
 const addInventory = async (req, res) => {
   try {
     const { itemName, description, price, quantity, category, arRef } = req.body;
-    console.log(req.body);
     const item = new Inventory({
       itemName,
       description,

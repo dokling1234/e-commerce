@@ -70,7 +70,6 @@ const AddInventory = () => {
 
       const data = await response.json();
       alert("Inventory item added successfully!");
-      console.log("Added Inventory:", data);
 
       // Reset form
       setFormData({

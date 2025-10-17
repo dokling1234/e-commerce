@@ -30,7 +30,6 @@ const fetchAPI = async (endpoint, options = {}) => {
 
 // Analytics API
 export const getAnalytics = async () => {
-  console.log("Fetching analytics from:", API_BASE_URL);
   return fetchAPI("/analytics");
 };
 

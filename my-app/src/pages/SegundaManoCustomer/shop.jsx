@@ -78,11 +78,31 @@ const Shop = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // 1️⃣ Fetch products from backend
         const res = await fetch(
           "http://localhost:5000/api/admin/products/customer"
         );
         const data = await res.json();
-        setProducts(data);
+
+        // 2️⃣ Fetch cart session
+        const cartRes = await fetch("http://localhost:5000/api/cart/get", {
+          credentials: "include",
+        });
+        const cartData = cartRes.ok ? await cartRes.json() : { cart: [] };
+
+        // 3️⃣ Adjust stock based on cart quantities
+        const adjustedProducts = data.map((prod) => {
+          const itemInCart = cartData.cart?.find(
+            (item) => item.productId === prod._id
+          );
+          const reservedQty = itemInCart?.quantity || 0;
+          return {
+            ...prod,
+            quantity: Math.max((prod.quantity || 0) - reservedQty, 0),
+          };
+        });
+
+        setProducts(adjustedProducts);
       } catch (err) {
         console.error("Failed to load products", err);
       }
@@ -90,6 +110,7 @@ const Shop = () => {
 
     fetchData();
   }, []);
+
   const handlePriceFilter = (min, max) => {
     setPriceRange({ min, max });
   };
@@ -106,10 +127,16 @@ const Shop = () => {
     "Toys",
     "Dining",
     "Outdoor",
+    "Shoes",
+    "Accessories",
   ];
 
   const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
+    if (selectedCategory === category) {
+      setSelectedCategory(null); // deselect if already selected
+    } else {
+      setSelectedCategory(category); // select new category
+    }
   };
 
   return (
@@ -166,16 +193,16 @@ const Shop = () => {
               <div className="filter-title">Categories</div>
               <ul className="filter-list">
                 {categories.map((cat) => (
-                  <li
-                    key={cat}
-                    className={selectedCategory === cat ? "is-active" : ""}
-                  >
+                  <li key={cat}>
                     <a
                       href="#"
                       onClick={(e) => {
-                        e.preventDefault(); // prevent page reload
+                        e.preventDefault();
                         handleCategoryClick(cat);
                       }}
+                      className={
+                        selectedCategory === cat ? "is-active underline" : ""
+                      }
                     >
                       {cat}
                     </a>
@@ -270,40 +297,39 @@ const Shop = () => {
 
           {/* Main Content */}
           <section className="shop-main">
-  <h1 className="shop-title">Clothes</h1>
-  <button className="filter-toggle">Filter</button>
+            {/* <h1 className="shop-title">Clothes</h1> */}
+            {/* <button className="filter-toggle">Filter</button> */}
 
-  <div className="shop-grid">
-    {filteredProducts.filter(p => p.quantity > 0).length > 0 ? (
-      filteredProducts
-        .filter(p => p.quantity > 0)
-        .map((p, i) => (
-          <article className="p-card" key={i}>
-            <Link to={`/product/${p._id}`} className="p-add">
-              Add to cart
-            </Link>
-            <Link to={`/product/${p._id}`} className="p-link">
-              <figure className="p-thumb">
-                <img
-                  src={p.images?.[0] || ""}
-                  alt={p.name || p.itemName}
-                />
-              </figure>
-              <div className="p-info">
-                <div className="p-name">{p.name || p.itemName}</div>
-                {p.size && <div className="p-variant">{p.size}</div>}
-                <div className="p-quantity">Qty: {p.quantity}</div>
-                <div className="p-price">₱{p.price}</div>
-              </div>
-            </Link>
-          </article>
-        ))
-    ) : (
-      <p>No products found for this price range.</p>
-    )}
-  </div>
-</section>
-
+            <div className="shop-grid">
+              {filteredProducts.filter((p) => p.quantity > 0).length > 0 ? (
+                filteredProducts
+                  .filter((p) => p.quantity > 0)
+                  .map((p, i) => (
+                    <article className="p-card" key={i}>
+                      <Link to={`/product/${p._id}`} className="p-add">
+                        {p.quantity > 0 ? "Add to cart" : "Out of Stock"}
+                      </Link>
+                      <Link to={`/product/${p._id}`} className="p-link">
+                        <figure className="p-thumb">
+                          <img
+                            src={p.images?.[0] || ""}
+                            alt={p.name || p.itemName}
+                          />
+                        </figure>
+                        <div className="p-info">
+                          <div className="p-name">{p.name || p.itemName}</div>
+                          {p.size && <div className="p-variant">{p.size}</div>}
+                          <div className="p-quantity">Qty: {p.quantity}</div>
+                          <div className="p-price">₱{p.price}</div>
+                        </div>
+                      </Link>
+                    </article>
+                  ))
+              ) : (
+                <p>No products found for this price range.</p>
+              )}
+            </div>
+          </section>
         </div>
       </main>
 

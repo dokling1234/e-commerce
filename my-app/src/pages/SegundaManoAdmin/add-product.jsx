@@ -95,28 +95,24 @@ const AddProduct = () => {
       formDataToSend.append("category", product.category);
       formDataToSend.append("size", product.size);
       formDataToSend.append("price", product.price);
-      formDataToSend.append("status", product.status);
+      formDataToSend.append("quantity", product.quantity || 1);
       formDataToSend.append("description", product.description);
 
       // Append images
       images.forEach((imgFile, index) => {
         if (imgFile instanceof File) {
-          formDataToSend.append("images", imgFile); 
+          formDataToSend.append("images", imgFile);
         }
       });
 
-      const token = sessionStorage.getItem("sg_admin_token"); 
-      console.log(token)
-      const response = await fetch(
-        `http://localhost:5000/api/admin/products`,
-        {
-          method: "POST",
-          headers: {
-            ...(token && { Authorization: `Bearer ${token}` }), 
-          },
-          body: formDataToSend,
-        }
-      );
+      const token = sessionStorage.getItem("sg_admin_token");
+      const response = await fetch(`http://localhost:5000/api/admin/products`, {
+        method: "POST",
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: formDataToSend,
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -124,7 +120,6 @@ const AddProduct = () => {
       }
 
       const data = await response.json();
-      console.log("Product added:", data);
       alert("Product added successfully!");
 
       // Reset form
@@ -298,19 +293,31 @@ const AddProduct = () => {
                           <option value="Clothing">Clothing</option>
                           <option value="Shoes">Shoes</option>
                           <option value="Accessories">Accessories</option>
+                          <option value="Gadgets & Phones">
+                            Gadgets & Phones
+                          </option>
+                          <option value="Bags">Bags</option>
+                          <option value="Toys">Toys</option>
+                          <option value="Dining">Dining</option>
+                          <option value="Outdoors">Outdoors</option>
                         </select>
                       </div>
                       <div>
                         <label className="form-label">Size</label>
-                        <input
-                          type="text"
-                          placeholder="Enter size"
-                          value={product.size}
+                        <select
+                          value={product.size || "M"}
                           onChange={(e) =>
                             setProduct({ ...product, size: e.target.value })
                           }
-                          className="form-input"
-                        />
+                          className="form-select"
+                          required
+                        >
+                          <option value="XS">XS</option>
+                          <option value="S">S</option>
+                          <option value="M">M</option>
+                          <option value="L">L</option>
+                          <option value="XL">XL</option>
+                        </select>
                       </div>
                     </div>
 
@@ -329,18 +336,54 @@ const AddProduct = () => {
                         />
                       </div>
                       <div>
-                        <label className="form-label">Status</label>
-                        <select
-                          value={product.status}
+                        <label className="form-label">Quantity</label>
+                        <input
+                          type="number"
+                          placeholder="Enter stock quantity"
+                          value={product.quantity || 1}
                           onChange={(e) =>
-                            setProduct({ ...product, status: e.target.value })
+                            setProduct({ ...product, quantity: e.target.value })
                           }
-                          className="form-select"
-                        >
-                          <option value="Available">Available</option>
-                          <option value="Low Stock">Low Stock</option>
-                          <option value="Out of Stock">Out of Stock</option>
-                        </select>
+                          className="form-input"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <label className="form-label">
+                          Perceived Value (₱)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Value for impact calculation"
+                          value={product.perceivedValue || 0.5}
+                          onChange={(e) =>
+                            setProduct({
+                              ...product,
+                              perceivedValue: e.target.value,
+                            })
+                          }
+                          className="form-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label">Impact (Meals)</label>
+                        <input
+                          type="number"
+                          placeholder="Meals Impact"
+                          value={product.impact?.meals || 0}
+                          onChange={(e) =>
+                            setProduct({
+                              ...product,
+                              impact: {
+                                ...product.impact,
+                                meals: e.target.value,
+                              },
+                            })
+                          }
+                          className="form-input"
+                        />
                       </div>
                     </div>
 

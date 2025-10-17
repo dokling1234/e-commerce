@@ -1,4 +1,4 @@
-const Product = require("../models/product");
+const Product = require("../models/Product");
 const cloudinary = require("../config/cloudinary");
 //getAll
 const getProducts = async (req, res) => {
@@ -77,28 +77,22 @@ const getSingleProduct =  async (req, res) => {
 //getRandomProducts - for suggestions
 const getRandomProducts = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 4; // Default to 4 products
+    const limit = parseInt(req.query.limit) || 4; 
     
-    console.log("Fetching random products with limit:", limit);
     
     // First try aggregation
     let products = await Product.aggregate([
-      { $match: { quantity: { $gt: 0 } } }, // Only products with quantity > 0
-      { $sample: { size: limit } } // Random sample
+      { $match: { quantity: { $gt: 0 } } }, 
+      { $sample: { size: limit } } 
     ]);
     
-    console.log("Aggregation result:", products.length, "products found");
     
-    // If no products found with aggregation, fallback to regular find
     if (products.length === 0) {
-      console.log("No products found with aggregation, trying regular find");
       const allProducts = await Product.find({ quantity: { $gt: 0 } });
-      console.log("All available products:", allProducts.length);
       
       // Shuffle and take first 4
       const shuffled = allProducts.sort(() => 0.5 - Math.random());
       products = shuffled.slice(0, limit);
-      console.log("Fallback result:", products.length, "products");
     }
     
     res.json(products);

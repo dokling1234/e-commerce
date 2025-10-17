@@ -38,7 +38,6 @@ const ThankYou = () => {
           }
         });
     }
-    console.log("Order ID:", orderId);
   }, [orderId]);
   return (
     <>

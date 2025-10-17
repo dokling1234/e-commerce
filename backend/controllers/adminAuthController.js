@@ -22,7 +22,6 @@ const registerAdmin = async (req, res) => {
 
 // Login
 const login = async (req, res) => {
-  console.log("check")
   try {
     const { email, password } = req.body; // Accept email instead of username
     const user = await AdminUser.findOne({ email }); // Find by email
@@ -69,4 +68,44 @@ const getAllAdmins = async (req, res) => {
   }
 };
 
-module.exports = { registerAdmin, login, getAllAdmins  };
+const getAdminInfo = async (req, res) => {
+  try {
+    console.log("checssadk")
+    const adminId = req.admin.id; 
+    const admin = await AdminUser.findById(adminId).select("-password");
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
+console.log(admin)
+    res.json(admin);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// Update admin info
+const updateAdminInfo = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { fullName, email, phone, role, bio, language, timezone, notifications } = req.body;
+
+    const admin = await AdminUser.findById(adminId);
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
+
+    // Update fields
+    admin.fullName = fullName || admin.fullName;
+    admin.email = email || admin.email;
+    admin.phone = phone || admin.phone;
+    admin.role = role || admin.role;
+    admin.bio = bio || admin.bio;
+    admin.language = language || admin.language;
+    admin.timezone = timezone || admin.timezone;
+    admin.notifications = notifications || admin.notifications;
+
+    await admin.save();
+    res.json({ message: "Admin updated successfully", admin });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
+module.exports = { registerAdmin, login, getAllAdmins, getAdminInfo, updateAdminInfo  };
