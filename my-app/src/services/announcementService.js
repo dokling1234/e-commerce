@@ -2,7 +2,7 @@ import { API_ENDPOINTS, getDefaultHeaders } from '../config/api';
 
 // Announcement API service
 export const announcementService = {
-  // Get all announcements (public - no authentication required)
+  // Get all announcements (public)
   getPublicAnnouncements: async () => {
     try {
       const response = await fetch(API_ENDPOINTS.ANNOUNCEMENTS.GET_PUBLIC, {
@@ -12,10 +12,7 @@ export const announcementService = {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       return { success: true, data };
     } catch (error) {
@@ -24,7 +21,7 @@ export const announcementService = {
     }
   },
 
-  // Get all announcements (admin - authentication required)
+  // Get all announcements (admin)
   getAllAnnouncements: async () => {
     try {
       const response = await fetch(API_ENDPOINTS.ANNOUNCEMENTS.GET_ALL, {
@@ -32,10 +29,7 @@ export const announcementService = {
         headers: getDefaultHeaders(),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       return { success: true, data };
     } catch (error) {
@@ -44,19 +38,28 @@ export const announcementService = {
     }
   },
 
-  // Add new announcement
+  // Add new announcement (supports single image upload)
   addAnnouncement: async (announcementData) => {
     try {
-      const response = await fetch(API_ENDPOINTS.ANNOUNCEMENTS.ADD, {
+      let options = {
         method: 'POST',
         headers: getDefaultHeaders(),
-        body: JSON.stringify(announcementData),
-      });
+        body: null,
+      };
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // If announcementData is FormData (file included)
+      if (announcementData instanceof FormData) {
+        options.body = announcementData;
+        // Do NOT set Content-Type; the browser will set multipart/form-data automatically
+        delete options.headers['Content-Type'];
+      } else {
+        // JSON fallback
+        options.body = JSON.stringify(announcementData);
       }
 
+      const response = await fetch(API_ENDPOINTS.ANNOUNCEMENTS.ADD, options);
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       return { success: true, data };
     } catch (error) {
@@ -73,10 +76,7 @@ export const announcementService = {
         headers: getDefaultHeaders(),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       return { success: true, data };
     } catch (error) {
@@ -94,10 +94,7 @@ export const announcementService = {
         body: JSON.stringify({ active }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       return { success: true, data };
     } catch (error) {

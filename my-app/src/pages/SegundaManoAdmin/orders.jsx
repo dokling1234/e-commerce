@@ -10,7 +10,7 @@ import {
   Settings,
   FilePen,
   Boxes,
-  Users
+  Users,
 } from "lucide-react";
 import "../../css/styles.css";
 import "../../css/adminsidebar.css";
@@ -23,6 +23,9 @@ const OrderManagement = () => {
   const [viewData, setViewData] = useState(null);
   const [editData, setEditData] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
+  const maxPageNumbers = 3;
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
@@ -75,7 +78,7 @@ const OrderManagement = () => {
   });
 
   const exportCSV = () => {
-    if (filtered.length === 0) return;
+    if (orders.length === 0) return;
 
     const headers = [
       "No",
@@ -87,15 +90,24 @@ const OrderManagement = () => {
       "Status",
     ];
 
-    const rows = filtered.map((o) => [
-      o.id,
-      o.productId,
-      o.productName,
-      o.customer,
-      o.date,
-      o.time,
-      o.status,
-    ]);
+    const rows = orders.map((o, index) => {
+      const productNames = o.items
+        .map((i) => i.productId?.title || i.productId?.itemName)
+        .join(", ");
+      const productIds = o.items
+        .map((i) => i.productId?._id || i.productId?.id || "")
+        .join(", ");
+
+      return [
+        index + 1,
+        productIds,
+        productNames,
+        o.buyerName,
+        new Date(o.createdAt).toLocaleDateString(),
+        new Date(o.createdAt).toLocaleTimeString(),
+        o.status,
+      ];
+    });
 
     const csvContent = [headers, ...rows].map((r) => r.join(",")).join("\n");
 
@@ -116,6 +128,19 @@ const OrderManagement = () => {
     setOrders((prev) => prev.filter((o) => o.id !== id));
     setDeleteItem(null);
   };
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = filtered.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(filtered.length / ordersPerPage);
+
+  let startPage = Math.max(1, currentPage - 1);
+  let endPage = Math.min(totalPages, startPage + maxPageNumbers - 1);
+
+  if (endPage - startPage + 1 < maxPageNumbers) {
+    startPage = Math.max(1, endPage - maxPageNumbers + 1);
+  }
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
   return (
     <div className="admin-activity">
@@ -190,37 +215,37 @@ const OrderManagement = () => {
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
-          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/activity"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Activity size={18} /> Activity Log
+              </NavLink>
+            )}
+
+            {/* Staff Management - Superadmin Only */}
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/staff-management"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Users size={18} /> Staff Management
+              </NavLink>
+            )}
             <NavLink
-              to="/activity"
+              to="/dailycollection"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Activity size={18} /> Activity Log
+              <FilePen size={18} /> Daily Collection
             </NavLink>
-          )}
 
-          {/* Staff Management - Superadmin Only */}
-          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
             <NavLink
-              to="/staff-management"
+              to="/account-settings"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Users size={18} /> Staff Management
+              <Settings size={18} /> Account Settings
             </NavLink>
-          )}
-          <NavLink
-            to="/dailycollection"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            <FilePen size={18} /> Daily Collection
-          </NavLink>
-
-          <NavLink
-            to="/account-settings"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            <Settings size={18} /> Account Settings
-          </NavLink>
           </nav>
         </aside>
 
@@ -273,14 +298,18 @@ const OrderManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((o, index) => (
+                {currentOrders.map((o, index) => (
                   <tr key={o._id}>
                     <td>
                       <input type="checkbox" />
                     </td>
-                    <td>{index + 1}</td>
+                    <td>{indexOfFirstOrder + index + 1}</td>
                     <td>{o._id}</td>
-                    <td>{o.items.map((i) => i.productId?.title || i.productId?.itemName).join(", ")}</td>
+                    <td>
+                      {o.items
+                        .map((i) => i.productId?.title || i.productId?.itemName)
+                        .join(", ")}
+                    </td>
                     <td>{o.buyerName}</td>
                     <td>{new Date(o.createdAt).toLocaleDateString()}</td>
                     <td>{new Date(o.createdAt).toLocaleTimeString()}</td>
@@ -305,10 +334,33 @@ const OrderManagement = () => {
           </div>
 
           <div className="pagination">
-            <button className="page-btn">‹</button>
-            <button className="page-btn active">1</button>
-            <button className="page-btn">2</button>
-            <button className="page-btn">›</button>
+            <button
+              className="page-btn"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              ‹
+            </button>
+
+            {pageNumbers.map((num) => (
+              <button
+                key={num}
+                className={`page-btn ${currentPage === num ? "active" : ""}`}
+                onClick={() => setCurrentPage(num)}
+              >
+                {num}
+              </button>
+            ))}
+
+            <button
+              className="page-btn"
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+            >
+              ›
+            </button>
           </div>
 
           {/* View Modal */}

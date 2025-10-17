@@ -4,8 +4,10 @@ import "../../css/styles.css";
 
 const Shop = () => {
   const [products, setProducts] = useState([]);
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
+  const [priceRange, setPriceRange] = useState({ min: 0, max: Infinity });
   const [selectedCategory, setSelectedCategory] = useState(null); // null = no filter
+  const [minPriceInput, setMinPriceInput] = useState("");
+  const [maxPriceInput, setMaxPriceInput] = useState("");
 
   useEffect(() => {
     const mobileNavToggle = document.querySelector(".mobile-nav-toggle");
@@ -68,6 +70,12 @@ const Shop = () => {
   }, []);
 
   useEffect(() => {
+    const min = Number(minPriceInput) || 0;
+    const max = Number(maxPriceInput) || Infinity;
+    setPriceRange({ min, max });
+  }, [minPriceInput, maxPriceInput]);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await fetch(
@@ -86,9 +94,9 @@ const Shop = () => {
     setPriceRange({ min, max });
   };
 
-  const filteredProducts = products.filter(
-    (p) => p.price >= priceRange.min && p.price <= priceRange.max
-  );
+  const filteredProducts = products
+    .filter((p) => p.price >= priceRange.min && p.price <= priceRange.max)
+    .filter((p) => !selectedCategory || p.category === selectedCategory);
 
   const categories = [
     "Furniture",
@@ -183,9 +191,19 @@ const Shop = () => {
                 support a scholar.
               </p>
               <div className="price-inputs">
-                <input type="text" placeholder="₱ min" />
+                <input
+                  type="number"
+                  placeholder="₱ min"
+                  value={minPriceInput}
+                  onChange={(e) => setMinPriceInput(e.target.value)}
+                />
                 <span>–</span>
-                <input type="text" placeholder="₱ max" />
+                <input
+                  type="number"
+                  placeholder="₱ max"
+                  value={maxPriceInput}
+                  onChange={(e) => setMaxPriceInput(e.target.value)}
+                />
               </div>
               <ul className="filter-list small">
                 <li>

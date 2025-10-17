@@ -11,6 +11,8 @@ const Landing = () => {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [products, setProducts] = useState([]);
+  const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
+  const [shuffledAnnouncements, setShuffledAnnouncements] = useState([]);
 
   const toggleMobileNav = () => {
     setNavActive(!navActive);
@@ -76,21 +78,28 @@ const Landing = () => {
         const result = await announcementService.getPublicAnnouncements();
 
         if (result.success) {
-          // Filter only active announcements for the landing page
           const activeAnnouncements = result.data.announcements.filter(
-            (announcement) => announcement.active
+            (a) => a.active
           );
-          setAnnouncements(activeAnnouncements);
+
+          // Shuffle announcements randomly
+          const shuffled = [...activeAnnouncements].sort(
+            () => 0.5 - Math.random()
+          );
+          setShuffledAnnouncements(shuffled);
+          setCurrentAnnouncementIndex(0);
         } else {
           setError(result.error);
         }
       } catch (err) {
         setError("Failed to fetch announcements");
-        console.error("Error fetching announcements:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
+
+    fetchAnnouncements();
 
     const fetchProducts = async () => {
       try {
@@ -114,6 +123,18 @@ const Landing = () => {
 
     fetchAnnouncements();
   }, []);
+
+  useEffect(() => {
+    if (shuffledAnnouncements.length === 0) return;
+
+    const interval = setInterval(() => {
+      setCurrentAnnouncementIndex(
+        (prev) => (prev + 1) % shuffledAnnouncements.length
+      );
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [shuffledAnnouncements]);
 
   return (
     <>
@@ -303,7 +324,7 @@ const Landing = () => {
             >
               <p>Error loading announcements: {error}</p>
             </div>
-          ) : announcements.length > 0 ? (
+          ) : shuffledAnnouncements.length > 0 ? (
             <>
               <h2
                 style={{
@@ -314,128 +335,147 @@ const Landing = () => {
                   textAlign: "center",
                 }}
               >
-                Latest Announcements
+                Latest Announcement
               </h2>
+
               <div
+                key={shuffledAnnouncements[currentAnnouncementIndex]?._id}
+                onClick={() =>
+                  openModal(shuffledAnnouncements[currentAnnouncementIndex])
+                }
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
-                  gap: "20px",
-                  maxHeight: "600px",
-                  overflowY: "auto",
-                  padding: "4px",
+                  display: "flex",
+                  backgroundColor: "white",
+                  borderRadius: "12px",
+                  padding: "16px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  cursor: "pointer",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  overflow: "hidden",
+                  alignItems: "flex-start",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-4px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(0,0,0,0.15)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
                 }}
               >
-                {announcements.slice(0, 6).map((announcement, index) => (
-                  <div
-                    key={announcement._id || index}
-                    onClick={() => openModal(announcement)}
-                    style={{
-                      backgroundColor: "white",
-                      borderRadius: "12px",
-                      padding: "20px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                      maxHeight: "220px",
-                      overflow: "hidden",
-                      position: "relative",
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                      cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-4px)";
-                      e.currentTarget.style.boxShadow =
-                        "0 4px 12px rgba(0,0,0,0.15)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow =
-                        "0 2px 8px rgba(0,0,0,0.1)";
-                    }}
-                  >
-                    {/* Alert Badge */}
-                    <span
+                {/* Image on the left */}
+                {shuffledAnnouncements[currentAnnouncementIndex].media &&
+                  shuffledAnnouncements[currentAnnouncementIndex].media.length >
+                    0 && (
+                    <img
+                      src={
+                        shuffledAnnouncements[currentAnnouncementIndex].media[0]
+                      }
+                      alt={
+                        shuffledAnnouncements[currentAnnouncementIndex].title
+                      }
                       style={{
-                        display: "inline-block",
-                        backgroundColor:
-                          announcement.label === "alert" ||
-                          announcement.label === "ALERT"
-                            ? "#ef4444"
-                            : announcement.label === "warning"
-                            ? "#f59e0b"
-                            : "#3b82f6",
-                        color: "white",
-                        padding: "4px 12px",
-                        borderRadius: "12px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        textTransform: "uppercase",
-                        marginBottom: "12px",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      {announcement.label}
-                    </span>
-
-                    {/* Title */}
-                    <h3
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: "700",
-                        marginBottom: "8px",
-                        color: "#1f2937",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {announcement.title}
-                    </h3>
-
-                    {/* Body with line-clamp */}
-                    <div
-                      style={{
-                        fontSize: "14px",
-                        color: "#6b7280",
-                        lineHeight: "1.6",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        marginBottom: "12px",
-                      }}
-                      dangerouslySetInnerHTML={{
-                        __html:
-                          announcement.body.replace(/<[^>]*>/g, "").length > 150
-                            ? announcement.body
-                                .replace(/<[^>]*>/g, "")
-                                .substring(0, 150) + "..."
-                            : announcement.body,
+                        width: "25%",
+                        height: "100px",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                        marginRight: "16px",
                       }}
                     />
+                  )}
 
-                    {/* Date */}
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        color: "#9ca3af",
-                        marginTop: "auto",
-                        position: "absolute",
-                        bottom: "16px",
-                        left: "20px",
-                      }}
-                    >
-                      {new Date(announcement.createdAt).toLocaleDateString(
-                        "en-US",
-                        {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        }
-                      )}
-                    </p>
-                  </div>
-                ))}
+                {/* Text content on the right */}
+                <div
+                  style={{
+                    width: "75%",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  {/* Badge
+                  <span
+                    style={{
+                      display: "inline-block",
+                      backgroundColor:
+                        shuffledAnnouncements[
+                          currentAnnouncementIndex
+                        ].label?.toLowerCase() === "alert"
+                          ? "#ef4444"
+                          : shuffledAnnouncements[
+                              currentAnnouncementIndex
+                            ].label?.toLowerCase() === "warning"
+                          ? "#f59e0b"
+                          : "#3b82f6",
+                      color: "white",
+                      padding: "4px 12px",
+                      borderRadius: "12px",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      marginBottom: "8px",
+                      letterSpacing: "0.5px",
+                      width: "fit-content",
+                    }}
+                  >
+                    {shuffledAnnouncements[currentAnnouncementIndex].label}
+                  </span> */}
+
+                  {/* Title */}
+                  <h3
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: "700",
+                      marginBottom: "8px",
+                      color: "#1f2937",
+                    }}
+                  >
+                    {shuffledAnnouncements[currentAnnouncementIndex].title}
+                  </h3>
+
+                  {/* Body */}
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      color: "#6b7280",
+                      lineHeight: "1.6",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      marginBottom: "auto",
+                    }}
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        shuffledAnnouncements[
+                          currentAnnouncementIndex
+                        ].body.replace(/<[^>]*>/g, "").length > 150
+                          ? shuffledAnnouncements[currentAnnouncementIndex].body
+                              .replace(/<[^>]*>/g, "")
+                              .substring(0, 150) + "..."
+                          : shuffledAnnouncements[currentAnnouncementIndex]
+                              .body,
+                    }}
+                  />
+
+                  {/* Date */}
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "#9ca3af",
+                      marginTop: "auto",
+                    }}
+                  >
+                    {new Date(
+                      shuffledAnnouncements[currentAnnouncementIndex].createdAt
+                    ).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
+                </div>
               </div>
             </>
           ) : (
@@ -523,7 +563,22 @@ const Landing = () => {
                 ×
               </button>
 
-              {/* Badge */}
+              {selectedAnnouncement.media &&
+                selectedAnnouncement.media.length > 0 && (
+                  <img
+                    src={selectedAnnouncement.media[0]}
+                    alt={selectedAnnouncement.title}
+                    style={{
+                      width: "100%",
+                      height: "300px",
+                      objectFit: "cover",
+                      borderRadius: "12px",
+                      marginBottom: "24px",
+                    }}
+                  />
+                )}
+
+              {/* Badge
               <span
                 style={{
                   display: "inline-block",
@@ -546,7 +601,7 @@ const Landing = () => {
                 }}
               >
                 {selectedAnnouncement.label}
-              </span>
+              </span> */}
 
               {/* Title */}
               <h2

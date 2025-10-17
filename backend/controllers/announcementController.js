@@ -2,22 +2,30 @@ const Announcement = require("../models/Announcement");
 
 const addAnnouncement = async (req, res) => {
   try {
-    const { title, label, body, media } = req.body;
+    const { title, label, body } = req.body;
 
     if (!title || !label || !body) {
-      return res.status(400).json({ message: "Title, label, and body are required" });
+      return res
+        .status(400)
+        .json({ message: "Title, label, and body are required" });
     }
+    const media = req.file ? req.file.path : null;
 
     const newAnnouncement = new Announcement({
       title,
       label,
       body,
-      media: media || []
+      media,
     });
 
     await newAnnouncement.save();
 
-    res.status(201).json({ message: "Announcement created successfully", announcement: newAnnouncement });
+    res
+      .status(201)
+      .json({
+        message: "Announcement created successfully",
+        announcement: newAnnouncement,
+      });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -43,7 +51,7 @@ const deleteAnnouncement = async (req, res) => {
 const toggleAnnouncementStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { active } = req.body; 
+    const { active } = req.body;
 
     const announcement = await Announcement.findById(id);
     if (!announcement) {
@@ -53,7 +61,10 @@ const toggleAnnouncementStatus = async (req, res) => {
     announcement.active = active;
     await announcement.save();
 
-    res.json({ message: `Announcement ${active ? "enabled" : "archived"}`, announcement });
+    res.json({
+      message: `Announcement ${active ? "enabled" : "archived"}`,
+      announcement,
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -68,5 +79,9 @@ const getAllAnnouncements = async (req, res) => {
   }
 };
 
-module.exports = { addAnnouncement, deleteAnnouncement, toggleAnnouncementStatus, getAllAnnouncements };
-
+module.exports = {
+  addAnnouncement,
+  deleteAnnouncement,
+  toggleAnnouncementStatus,
+  getAllAnnouncements,
+};

@@ -7,6 +7,10 @@ export default function Checkout() {
   const [navActive, setNavActive] = useState(false);
   const [orderType, setOrderType] = useState("delivery");
   const [paymentMode, setPaymentMode] = useState("gcash");
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [orderId, setOrderId] = useState(false);
 
   // Contact + Address fields
   const [firstName, setFirstName] = useState("");
@@ -33,7 +37,7 @@ export default function Checkout() {
     document.body.style.overflow = "";
   };
 
-  useEffect(() => {
+  useEffect(() => { // resize
     const handleResize = () => {
       if (window.innerWidth > 900) closeMobileNav();
     };
@@ -41,7 +45,7 @@ export default function Checkout() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const fetchCart = async () => {
+  const fetchCart = async () => { // get cart
     try {
       const res = await fetch(`http://localhost:5000/api/cart/get`, {
         credentials: "include",
@@ -59,7 +63,7 @@ export default function Checkout() {
 
   fetchCart();
   //total ng cart
-  const subtotal = cartItems.reduce(
+  const subtotal = cartItems.reduce( // subtotal
     (acc, item) =>
       acc +
       (item.price || item.unitPrice || 0) * (item.quantity || item.qty || 1),
@@ -68,7 +72,7 @@ export default function Checkout() {
   const total = subtotal - discount;
 
   // Apply voucher
-  const applyVoucher = () => {
+  const applyVoucher = () => { // voucher
     if (voucher.trim().toUpperCase() === "DISCOUNT50") {
       setDiscount(50);
     } else {
@@ -78,91 +82,95 @@ export default function Checkout() {
   };
 
   // Handle Place Order
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = async () => { // placeorder
     if (!firstName || !lastName || !phone || !email) {
       alert("Please fill out all contact information.");
       return;
     }
 
-    const buyerName = `${firstName} ${lastName}`;
-    const buyerEmail = email;
-
-    const items = cartItems.map((item) => ({
-      productId: item.productId || item._id,
-      qty: item.quantity || item.qty || 1,
-    }));
-
-    let bodyToSend;
-    let isMultipart = false; // to control headers
-
-    if (paymentMode === "gcash" && receiptFile) {
-      // ✅ Use FormData for file upload
-      isMultipart = true;
-      const formData = new FormData();
-      formData.append("buyerName", buyerName);
-      formData.append("buyerEmail", buyerEmail);
-      formData.append("items", JSON.stringify(items)); // arrays must be stringified
-      formData.append("paymentMethod", paymentMode);
-      formData.append("orderType", orderType);
-      if (orderType === "delivery") {
-        formData.append(
-          "address",
-          JSON.stringify({ street, city, state, zip })
-        );
-      }
-      formData.append("proofOfPayment", receiptFile); // FILE FIELD
-
-      bodyToSend = formData;
-    } else {
-      // ✅ Fallback to JSON if no file upload
-      bodyToSend = JSON.stringify({
-        buyerName,
-        buyerEmail,
-        items,
-        paymentMethod: paymentMode,
-        orderType,
-        address: orderType === "delivery" ? { street, city, state, zip } : null,
-      });
+    if (orderType === "delivery" && (!street || !city)) {
+      alert("Please fill out your delivery address.");
+      return;
     }
 
+    if (paymentMode === "gcash" && !receiptFile) {
+      alert("Please upload your GCash receipt.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("buyerName", `${firstName} ${lastName}`);
+    formData.append("buyerEmail", email);
+    formData.append("items", JSON.stringify(cartItems));
+    formData.append("paymentMethod", paymentMode);
+    formData.append("orderType", orderType);
+    if (orderType === "delivery") {
+      formData.append("address", JSON.stringify({ street, city, state, zip }));
+    }
+    if (receiptFile) formData.append("proofOfPayment", receiptFile);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/admin/orders/order", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Failed to create order.");
+        return;
+      }
+
+      if (data.message.includes("OTP sent")) {
+        alert("OTP sent to your email. Please verify.");
+        setOrderId(data.orderId);
+        setOtpModalOpen(true);
+      } else {
+        alert("Order created successfully!");
+        console.log("Order ID:", data.orderId);
+
+        navigate("/thank-you", { state: { email, orderId: data.orderId } });
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Server error while creating order.");
+    }
+  };
+
+  // OTP submit handler
+  const handleOtpSubmit = async () => { // otp submit
     try {
       const response = await fetch(
-        `http://localhost:5000/api/admin/orders/order`,
+        "http://localhost:5000/api/admin/orders/verify-otp",
         {
           method: "POST",
-          credentials: "include",
-          headers: isMultipart
-            ? undefined
-            : { "Content-Type": "application/json" }, 
-          body: bodyToSend,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, otp }),
         }
       );
 
       const data = await response.json();
 
-      if (response.ok) {
-        alert(data.message || "Order placed!");
+      if (response.ok && data.success) {
+        alert("OTP verified! Redirecting to Thank You page...");
+        setOtpModalOpen(false);
+        setEmailVerified(true);
 
-        await fetch(`http://localhost:5000/api/cart/clear`, {
-          method: "POST",
-          credentials: "include",
-        });
-
-        setCartItems([]);
-        navigate("/thankyou", { state: { orderId: data.orderId } });
+        navigate("/thankyou", { state: { email, orderId: data.orderId } });
       } else {
-        alert(data.message || "Error placing order.");
+        alert(data.message || "Invalid OTP");
       }
-    } catch (error) {
-      console.error("Order error:", error);
-      alert("Something went wrong. Try again.");
+    } catch (err) {
+      console.error(err);
+      alert("OTP verification failed.");
     }
   };
 
   const [referenceNumber, setReferenceNumber] = useState("");
   const [receiptFile, setReceiptFile] = useState(null);
 
-  const handleReceiptUpload = (e) => {
+  const handleReceiptUpload = (e) => { // receipt upload
     setReceiptFile(e.target.files[0]);
   };
 
@@ -526,6 +534,32 @@ export default function Checkout() {
               >
                 Place Order
               </button>
+              {/* OTP Modal */}
+              {otpModalOpen && (
+                <div className="otp-modal-overlay">
+                  <div className="otp-modal-content">
+                    <h2>OTP Verification</h2>
+                    <p>Please enter the OTP sent to your email:</p>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="Enter OTP"
+                    />
+                    <div className="otp-modal-buttons">
+                      <button onClick={handleOtpSubmit} className="verify-btn">
+                        Verify OTP
+                      </button>
+                      <button
+                        onClick={() => setOtpModalOpen(false)}
+                        className="cancel-btn"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </aside>
           </div>
         </div>

@@ -140,29 +140,26 @@ const Announcement = () => {
       setError(null);
       setSuccess(null);
 
-      const announcementData = {
-        title: title.trim(),
-        label: label.trim(),
-        body: editorRef.current.innerHTML,
-        media: mediaType ? [mediaType] : [],
-      };
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      formData.append("label", label.trim());
+      formData.append("body", editorRef.current.innerHTML);
 
-      const result = await announcementService.addAnnouncement(
-        announcementData
-      );
+      if (mediaType) {
+        formData.append("media", mediaType); // single file
+      }
+
+      const result = await announcementService.addAnnouncement(formData);
 
       if (result.success) {
         setSuccess("Announcement published successfully!");
-        // Reset form
         setTitle("");
         setLabel("");
         setMessage("<p>Enter the text for your Message..</p>");
-        setMediaType("");
-        if (editorRef.current) {
+        setMediaType(null);
+        if (editorRef.current)
           editorRef.current.innerHTML =
             "<p>Enter the text for your Message..</p>";
-        }
-        // Refresh announcements list
         fetchAnnouncements();
       } else {
         setError(result.error);
@@ -384,63 +381,25 @@ const Announcement = () => {
 
                   {/* Media Content Field */}
                   <div style={{ marginBottom: "16px" }}>
-                    <div
+                    <label
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
+                        display: "block",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "#374151",
                         marginBottom: "6px",
                       }}
                     >
-                      <label
-                        style={{
-                          fontSize: "14px",
-                          fontWeight: "600",
-                          color: "#374151",
-                        }}
-                      >
-                        Media Content
-                      </label>
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          padding: "2px 8px",
-                          borderRadius: "999px",
-                          fontSize: "12px",
-                          fontWeight: "500",
-                          backgroundColor: "#f3f4f6",
-                          color: "#6b7280",
-                        }}
-                      >
-                        OPTIONAL
-                      </span>
-                      <svg
-                        style={{
-                          width: "16px",
-                          height: "16px",
-                          color: "#9ca3af",
-                        }}
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <p
-                      style={{
-                        fontSize: "14px",
-                        color: "#6b7280",
-                        marginBottom: "8px",
+                      Media Content
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setMediaType(e.target.files[0]); // store File object
+                        }
                       }}
-                    >
-                      Type of media content will user for header
-                    </p>
-                    <select
                       style={{
                         width: "100%",
                         padding: "10px 12px",
@@ -448,23 +407,18 @@ const Announcement = () => {
                         borderRadius: "6px",
                         fontSize: "14px",
                       }}
-                      value={mediaType}
-                      onChange={(e) => setMediaType(e.target.value)}
-                    >
-                      <option value="">Select Media Content</option>
-                      <option value="png">PNG</option>
-                      <option value="jpg">JPG</option>
-                      <option value="none">None</option>
-                    </select>
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        color: "#6b7280",
-                        marginTop: "4px",
-                      }}
-                    >
-                      Note: Upload media content in PNG or JPG format.
-                    </p>
+                    />
+                    {mediaType && (
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          color: "#6b7280",
+                          marginTop: "4px",
+                        }}
+                      >
+                        Selected file: {mediaType.name}
+                      </p>
+                    )}
                   </div>
 
                   {/* Label Field */}
