@@ -3,6 +3,7 @@ import "../../css/styles.css";
 import { useState, useEffect } from "react";
 import "../../css/adminsidebar.css";
 import { Line, Doughnut } from "react-chartjs-2";
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,7 +24,7 @@ import {
   Activity,
   Settings,
   Users,
-  FilePen
+  FilePen,
 } from "lucide-react";
 import { getAnalytics } from "../../services/api";
 
@@ -75,6 +76,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [activities, setActivities] = useState([]);
 
   useEffect(() => {
     const token = sessionStorage.getItem("sg_admin_token");
@@ -87,6 +93,115 @@ export default function Dashboard() {
     const interval = setInterval(fetchAnalytics, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    fetchOrders();
+
+    // Auto-refresh notifications every 30 seconds
+    const interval = setInterval(fetchOrders, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+  fetchData();
+
+  // Auto-refresh every 30 seconds
+  const interval = setInterval(fetchData, 30000);
+  return () => clearInterval(interval);
+}, []);
+
+const fetchData = async () => {
+  try {
+    const token = sessionStorage.getItem("sg_admin_token");
+
+    // Fetch products
+    const productRes = await fetch("http://localhost:5000/api/admin/products", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const productsData = await productRes.json();
+    setProducts(productsData);
+
+    // Fetch inventory (or you can merge with products if same endpoint)
+    const inventoryRes = await fetch("http://localhost:5000/api/admin/inventory", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const inventoryData = await inventoryRes.json();
+    setInventory(inventoryData);
+
+    // Combine activities
+    const productActivities = productsData
+      .slice(-5)
+      .map((p) => ({
+        id: p._id,
+        text: `Product updated: ${p.name || p.itemName}`,
+        time: TimeAgo(p.updatedAt || p.createdAt),
+      }));
+
+    const inventoryActivities = inventoryData
+      .slice(-5)
+      .map((i) => ({
+        id: i._id,
+        text: `Inventory updated: ${i.productName || i.itemName}`,
+        time: TimeAgo(i.updatedAt || i.createdAt),
+      }));
+
+    // Merge and sort by date descending
+    const mergedActivities = [...productActivities, ...inventoryActivities].sort(
+      (a, b) => new Date(b.timeRaw) - new Date(a.timeRaw)
+    );
+
+    // Take latest 5
+    setActivities(mergedActivities.slice(0, 5));
+  } catch (err) {
+    console.error("Failed to fetch products/inventory:", err);
+  }
+};
+
+// Helper to convert timestamp to readable "time ago"
+const TimeAgo = (date) => {
+  const diff = Date.now() - new Date(date).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} days ago`;
+};
+  const fetchOrders = async () => {
+    try {
+      const token = sessionStorage.getItem("sg_admin_token");
+      const res = await fetch("http://localhost:5000/api/admin/orders", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setOrders(data);
+
+      // Map latest 5 orders to notifications
+      const newNotifications = data
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 5)
+        .map((order) => ({
+          id: order._id,
+          text: `New order from ${order.buyerName}`,
+          time: timeAgo(order.createdAt),
+        }));
+      setNotifications(newNotifications);
+    } catch (err) {
+      console.error("Failed to fetch orders:", err);
+    }
+  };
+
+  const timeAgo = (date) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes} minutes ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hours ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} days ago`;
+  };
 
   const fetchAnalytics = async () => {
     try {
@@ -376,27 +491,16 @@ export default function Dashboard() {
                 <h3>Notifications</h3>
               </div>
               <div className="admin-list">
-                <div className="admin-item">
-                  <div className="admin-dot"></div>
-                  <div>
-                    <strong>New order received</strong>
-                    <div className="admin-small">Just now</div>
+                {notifications.length === 0 && <div>No new notifications</div>}
+                {notifications.map((n) => (
+                  <div className="admin-item" key={n.id}>
+                    <div className="admin-dot"></div>
+                    <div>
+                      <strong>{n.text}</strong>
+                      <div className="admin-small">{n.time}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="admin-item">
-                  <div className="admin-dot"></div>
-                  <div>
-                    <strong>New order received</strong>
-                    <div className="admin-small">59 minutes ago</div>
-                  </div>
-                </div>
-                <div className="admin-item">
-                  <div className="admin-dot"></div>
-                  <div>
-                    <strong>New order received</strong>
-                    <div className="admin-small">2 days ago</div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
@@ -405,20 +509,16 @@ export default function Dashboard() {
                 <h3>Activities</h3>
               </div>
               <div className="admin-list">
-                <div className="admin-item">
-                  <div className="admin-dot"></div>
-                  <div>
-                    <strong>Admin1 added a new product</strong>
-                    <div className="admin-small">10 minutes ago</div>
+                {activities.length === 0 && <div>No recent activity</div>}
+                {activities.map((a) => (
+                  <div className="admin-item" key={a.id}>
+                    <div className="admin-dot"></div>
+                    <div>
+                      <strong>{a.text}</strong>
+                      <div className="admin-small">{a.time}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="admin-item">
-                  <div className="admin-dot"></div>
-                  <div>
-                    <strong>Price updated - product1</strong>
-                    <div className="admin-small">1 hour ago</div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </aside>
