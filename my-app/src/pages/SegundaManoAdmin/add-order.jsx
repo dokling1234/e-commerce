@@ -1,313 +1,345 @@
 import React, { useState, useEffect } from "react";
+import { NavLink } from "react-router-dom";
+import {
+  Home,
+  Box,
+  ClipboardList,
+  User,
+  Megaphone,
+  Activity,
+  Settings,
+  FilePen,
+  Boxes,
+} from "lucide-react";
+import "../../css/styles.css";
 import "../../css/adminsidebar.css";
+import "../../css/forms.css";
 
 const AddOrder = () => {
-  const [customer, setCustomer] = useState({
-    name: "",
-    contact: "",
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    customerName: "",
+    contactNumber: "",
     email: "",
     address: "",
     city: "",
     province: "",
+    product: "",
+    quantity: 1,
+    paymentMethod: "",
+    shippingMethod: "",
+    notes: "",
   });
 
-  const [products, setProducts] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [orderDate, setOrderDate] = useState("");
-  const [deliveryDate, setDeliveryDate] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [status, setStatus] = useState("");
-  const [instructions, setInstructions] = useState("");
+  const [subtotal, setSubtotal] = useState(0);
+  const [shippingFee, setShippingFee] = useState(0);
+  const [grandTotal, setGrandTotal] = useState(0);
 
-  // Price list (simulate product options)
-  const productOptions = [
-    { id: "p1", name: "Albibas Blue - Size 40", price: 300, size: 40 },
-    { id: "p2", name: "Albibas Red - Size 38", price: 250, size: 38 },
-    { id: "p3", name: "Albibas Green - Size 42", price: 350, size: 42 },
-  ];
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
-  // Set initial dates
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    setOrderDate(today);
-    const delivery = new Date();
-    delivery.setDate(delivery.getDate() + 3);
-    setDeliveryDate(delivery.toISOString().split("T")[0]);
+    const handleResize = () => {
+      if (window.innerWidth > 768) setSidebarOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Add product to list
-  const addProduct = () => {
-    if (!selectedProduct || quantity < 1) {
-      alert("Please select a product and enter a valid quantity");
-      return;
-    }
-
-    const product = productOptions.find((p) => p.id === selectedProduct);
-    const newProduct = {
-      id: Date.now(),
-      ...product,
-      quantity,
-      total: product.price * quantity,
-    };
-
-    setProducts([...products, newProduct]);
-    setSelectedProduct("");
-    setQuantity(1);
+  const productPrices = {
+    shirt: 500,
+    pants: 700,
+    shoes: 1200,
   };
 
-  // Remove product
-  const removeProduct = (id) => {
-    setProducts(products.filter((p) => p.id !== id));
+  // Update subtotal, shipping fee, and grand total dynamically
+  useEffect(() => {
+    const price = productPrices[formData.product] || 0;
+    const calcSubtotal = price * (formData.quantity || 1);
+    const calcShipping =
+      formData.shippingMethod === "delivery"
+        ? 150
+        : formData.shippingMethod === "pickup"
+        ? 0
+        : 0;
+    setSubtotal(calcSubtotal);
+    setShippingFee(calcShipping);
+    setGrandTotal(calcSubtotal + calcShipping);
+  }, [formData.product, formData.quantity, formData.shippingMethod]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "quantity" ? parseInt(value) || 1 : value,
+    }));
   };
 
-  // Update quantity
-  const updateQuantity = (id, newQuantity) => {
-    setProducts(
-      products.map((p) =>
-        p.id === id
-          ? { ...p, quantity: newQuantity, total: p.price * newQuantity }
-          : p
-      )
-    );
-  };
-
-  // Totals
-  const subtotal = products.reduce((sum, p) => sum + p.total, 0);
-  const shipping = 50;
-  const total = subtotal + shipping;
-
-  // Handle submit
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (products.length === 0) {
-      alert("Please add at least one product");
-      return;
-    }
-    alert("Order created successfully!");
-    // Here you’d send data to backend
-    console.log({
-      customer,
-      products,
-      orderDate,
-      deliveryDate,
-      paymentMethod,
-      status,
-      instructions,
-      subtotal,
-      total,
-    });
+    alert("Order added successfully!");
+    console.log("Order Submitted:", { ...formData, subtotal, shippingFee, grandTotal });
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-center mb-6">Add New Order</h1>
+    <div className="admin-activity">
+      {/* Mobile Sidebar Toggle */}
+      <button
+        className="admin-settings-mobile-menu-toggle"
+        onClick={toggleSidebar}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 12h18M3 6h18M3 18h18" />
+        </svg>
+      </button>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Customer Info */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="font-semibold text-lg mb-4">Customer Information</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              className="border p-2 rounded"
-              placeholder="Customer Name"
-              required
-              value={customer.name}
-              onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-            />
-            <input
-              className="border p-2 rounded"
-              placeholder="Contact Number"
-              required
-              value={customer.contact}
-              onChange={(e) =>
-                setCustomer({ ...customer, contact: e.target.value })
-              }
-            />
-            <input
-              className="border p-2 rounded"
-              placeholder="Email Address"
-              value={customer.email}
-              onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-            />
-            <input
-              className="border p-2 rounded"
-              placeholder="Delivery Address"
-              required
-              value={customer.address}
-              onChange={(e) =>
-                setCustomer({ ...customer, address: e.target.value })
-              }
-            />
-            <input
-              className="border p-2 rounded"
-              placeholder="City/Municipality"
-              required
-              value={customer.city}
-              onChange={(e) => setCustomer({ ...customer, city: e.target.value })}
-            />
-            <input
-              className="border p-2 rounded"
-              placeholder="Province"
-              required
-              value={customer.province}
-              onChange={(e) =>
-                setCustomer({ ...customer, province: e.target.value })
-              }
-            />
+      {/* Overlay */}
+      <div
+        className={`admin-settings-sidebar-overlay ${sidebarOpen ? "open" : ""}`}
+        onClick={toggleSidebar}
+      ></div>
+
+      <div className="admin-settings-layout">
+        {/* Sidebar */}
+        <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`}>
+          <div className="admin-brand">
+            <div className="admin-logo"></div>
+            <span className="admin-brand-text">
+              <span>Segunda</span>
+              <span>Mana</span>
+            </span>
           </div>
-        </div>
 
-        {/* Product Selection */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="font-semibold text-lg mb-4">Product Selection</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <select
-              className="border p-2 rounded"
-              value={selectedProduct}
-              onChange={(e) => setSelectedProduct(e.target.value)}
-              required
-            >
-              <option value="">Select a product</option>
-              {productOptions.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} - ₱{p.price}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              className="border p-2 rounded"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              required
-            />
+          <nav className="admin-nav">
+            <div className="admin-section-title">GENERAL</div>
+            <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Home size={18} /> Dashboard
+            </NavLink>
+            <NavLink to="/inventory" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Boxes size={18} /> Inventory
+            </NavLink>
+            <NavLink to="/admin-product" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Box size={18} /> Product
+            </NavLink>
+            <NavLink to="/orders" className={({ isActive }) => (isActive ? "active" : "")}>
+              <ClipboardList size={18} /> Order Management
+            </NavLink>
+            <NavLink to="/beneficiary" className={({ isActive }) => (isActive ? "active" : "")}>
+              <User size={18} /> Beneficiary
+            </NavLink>
+            <NavLink to="/announcement" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Megaphone size={18} /> Announcement
+            </NavLink>
+
+            <div className="admin-section-title">TOOLS</div>
+            <NavLink to="/dailycollection" className={({ isActive }) => (isActive ? "active" : "")}>
+              <FilePen size={18} /> Daily Collection
+            </NavLink>
+            <NavLink to="/activity" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Activity size={18} /> Activity Log
+            </NavLink>
+            <NavLink to="/account-settings" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Settings size={18} /> Account Settings
+            </NavLink>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="admin-settings-content">
+          <div className="page-title text-center mb-6">
+            <h1 className="text-2xl font-bold">Add New Order</h1>
           </div>
-          <button
-            type="button"
-            onClick={addProduct}
-            className="mt-3 px-4 py-2 bg-blue-500 text-white rounded"
-          >
-            + Add Product
-          </button>
 
-          {/* Product List */}
-          <div className="mt-4 space-y-2">
-            {products.map((p) => (
-              <div
-                key={p.id}
-                className="flex justify-between items-center border p-2 rounded"
-              >
-                <div>
-                  <p className="font-semibold">{p.name}</p>
-                  <p className="text-sm text-gray-500">
-                    Size: {p.size} | ₱{p.price}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
+          <form onSubmit={handleSubmit} className="form-container">
+            {/* Customer Information */}
+            <div className="form-panel mb-8">
+              <div className="form-title">Customer Information</div>
+              <div className="grid">
+                <div className="form-group flex flex-col">
+                  <label className="form-label">Customer Name <span className="text-red-500">*</span></label>
                   <input
-                    type="number"
-                    min="1"
-                    className="border w-16 text-center rounded"
-                    value={p.quantity}
-                    onChange={(e) =>
-                      updateQuantity(p.id, Number(e.target.value))
-                    }
+                    type="text"
+                    name="customerName"
+                    value={formData.customerName}
+                    onChange={handleChange}
+                    required
+                    placeholder="Enter full name"
+                    className="form-input"
                   />
-                  <span>₱{p.total}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeProduct(p.id)}
-                    className="px-2 py-1 bg-red-500 text-white rounded"
-                  >
-                    Remove
-                  </button>
+                </div>
+
+                <div className="form-group flex flex-col">
+                  <label className="form-label">Contact Number</label>
+                  <input
+                    type="tel"
+                    name="contactNumber"
+                    value={formData.contactNumber}
+                    onChange={handleChange}
+                    placeholder="Enter contact number"
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group flex flex-col">
+                  <label className="form-label">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter email address"
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group flex flex-col">
+                  <label className="form-label">Address</label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="Enter street address"
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group flex flex-col">
+                  <label className="form-label">City</label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="Enter city"
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group flex flex-col">
+                  <label className="form-label">Province</label>
+                  <input
+                    type="text"
+                    name="province"
+                    value={formData.province}
+                    onChange={handleChange}
+                    placeholder="Enter province"
+                    className="form-input"
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Order Details */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="font-semibold text-lg mb-4">Order Details</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <input type="date" value={orderDate} readOnly className="border p-2 rounded" />
-            <input
-              type="date"
-              value={deliveryDate}
-              onChange={(e) => setDeliveryDate(e.target.value)}
-              className="border p-2 rounded"
-            />
-            <select
-              className="border p-2 rounded"
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              required
-            >
-              <option value="">Payment Method</option>
-              <option value="cash">Cash on Delivery</option>
-              <option value="bank">Bank Transfer</option>
-              <option value="gcash">GCash</option>
-              <option value="paymaya">PayMaya</option>
-            </select>
-            <select
-              className="border p-2 rounded"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              required
-            >
-              <option value="">Order Status</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="processing">Processing</option>
-              <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <textarea
-              className="border p-2 rounded col-span-2"
-              placeholder="Special Instructions"
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Order Summary */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="font-semibold text-lg mb-4">Order Summary</h2>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>₱{subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between">
-              <span>Shipping Fee:</span>
-              <span>₱{shipping.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between font-bold border-t pt-2">
-              <span>Total Amount:</span>
-              <span>₱{total.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Buttons */}
-        <div className="flex gap-4 justify-center">
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            className="px-4 py-2 border rounded"
-          >
-            Cancel
-          </button>
-          <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded">
-            Create Order
-          </button>
-        </div>
-      </form>
+            {/* Product Selection */}
+            <div className="form-panel mb-8">
+              <div className="form-title">Product Selection</div>
+              <div className="grid">
+                <div className="form-group flex flex-col">
+                  <label className="form-label">Product <span className="text-red-500">*</span></label>
+                  <select
+                    name="product"
+                    value={formData.product}
+                    onChange={handleChange}
+                    required
+                    className="form-select"
+                  >
+                    <option value="">Select a product</option>
+                    <option value="shirt">Shirt — ₱500</option>
+                    <option value="pants">Pants — ₱700</option>
+                    <option value="shoes">Shoes — ₱1200</option>
+                  </select>
+                </div>
+
+                <div className="form-group flex flex-col">
+                  <label className="form-label">Quantity</label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    min="1"
+                    value={formData.quantity}
+                    onChange={handleChange}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Order Details */}
+            <div className="form-panel mb-8">
+              <div className="form-title">Order Details</div>
+              <div className="grid">
+                <div className="form-group flex flex-col">
+                  <label className="form-label">Payment Method</label>
+                  <select
+                    name="paymentMethod"
+                    value={formData.paymentMethod}
+                    onChange={handleChange}
+                    className="form-select"
+                  >
+                    <option value="">Select payment method</option>
+                    <option value="cod">Cash on Delivery</option>
+                    <option value="gcash">GCash</option>
+                    <option value="bank">Bank Transfer</option>
+                  </select>
+                </div>
+
+                <div className="form-group flex flex-col">
+                  <label className="form-label">Shipping Method</label>
+                  <select
+                    name="shippingMethod"
+                    value={formData.shippingMethod}
+                    onChange={handleChange}
+                    className="form-select"
+                  >
+                    <option value="">Select shipping method</option>
+                    <option value="pickup">Pickup (₱0)</option>
+                    <option value="delivery">Delivery (₱150)</option>
+                  </select>
+                </div>
+
+                <div className="form-group flex flex-col col-span-2">
+                  <label className="form-label">Additional Notes</label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    placeholder="Enter any special instructions"
+                    className="form-textarea"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            {/* Order Summary */}
+            <div className="form-panel">
+              <div className="form-title">Order Summary</div>
+              <div className="summary" style={{ lineHeight: "1.8" }}>
+                <p><strong>Customer:</strong> {formData.customerName || "—"}</p>
+                <p><strong>Product:</strong> {formData.product ? `${formData.product.charAt(0).toUpperCase() + formData.product.slice(1)}` : "—"}</p>
+                <p><strong>Quantity:</strong> {formData.quantity}</p>
+                <p><strong>Payment:</strong> {formData.paymentMethod || "—"}</p>
+                <p><strong>Shipping:</strong> {formData.shippingMethod || "—"}</p>
+                <hr style={{ margin: "12px 0" }} />
+                <p><strong>Subtotal:</strong> ₱{subtotal.toLocaleString()}</p>
+                <p><strong>Shipping Fee:</strong> ₱{shippingFee.toLocaleString()}</p>
+                <p><strong>Grand Total:</strong> <span style={{ color: "#dc2626", fontWeight: 700 }}>₱{grandTotal.toLocaleString()}</span></p>
+              </div>
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="btn border"
+                  onClick={() => window.history.back()}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn primary">
+                  Place Order
+                </button>
+              </div>
+            </div>
+          </form>
+        </main>
+      </div>
     </div>
   );
 };
