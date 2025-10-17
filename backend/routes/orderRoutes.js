@@ -2,12 +2,13 @@ const router = require("express").Router();
 const {authMiddleware} = require("../middleware/authMiddleWare");
 const logActivity = require("../middleware/activityLogger");
 const upload = require("../middleware/upload.js");
-const { createOrder, getOrders, updateOrderStatus, deleteOrder, markOrderToReceive, markOrderReceived, generateBundle, verifyOrderOTP, createManualOrder, getOrder  } = require("../controllers/orderController");
+const { createOrder, getOrders, updateOrderStatus, deleteOrder, markOrderToReceive, markOrderReceived, generateBundle, verifyOrderOTP, createManualOrder, getOrder, checkEmailVerified  } = require("../controllers/orderController");
 
 //client
 router.post("/order", upload.single("proofOfPayment"), createOrder);
 router.post("/verify-otp", verifyOrderOTP);
 router.get("/:id", getOrder);
+router.post("/check-email", checkEmailVerified);
 
 //Admin: orderRoutes
 router.get("/", authMiddleware, getOrders);

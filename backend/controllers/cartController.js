@@ -1,7 +1,6 @@
 // Add item to cart
 const addCart = async (req, res) => {
   const { productId, quantity, image, title, price  } = req.body;
-  console.log("Request Body:", req.body); 
 
   if (!req.session.cart) {
     req.session.cart = [];

@@ -56,7 +56,6 @@ const deleteProduct = async (req, res) => {
 
 const getSingleProduct =  async (req, res) => {
   try {
-    console.log("Getting product with ID:", req.params.id);
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);

@@ -1,8 +1,9 @@
 const Order = require("../models/Order");
 const Product = require("../models/product");
 const knapsack = require("../helper/knapsack");
-const transporter = require("../config/transporter"); // your transporter
+const transporter = require("../config/transporter");
 const VerifiedEmail = require("../models/verifiedEmail");
+const Notification = require("../models/Notification");
 const crypto = require("crypto");
 const {
   VERIFY_TEMPLATE,
@@ -14,27 +15,28 @@ const createOrder = async (req, res) => {
   const {
     buyerName,
     buyerEmail,
-    items,
+    items: rawItems,
     paymentMethod, // cash/gcash
     orderType, // delivery/pickup
     address, // for delivery
   } = req.body;
+
   const proofOfPayment = req.file ? req.file.path : null;
-  console.log("Uploaded proof:", proofOfPayment);
+
+  console.log("Req.body:", req.body);
+
   if (!paymentMethod) {
     return res
       .status(400)
       .json({ message: "Payment method is required (cash or gcash)" });
   }
 
-  // If GCash, receipt
   if (paymentMethod === "gcash" && !proofOfPayment) {
-    return res
-      .status(400)
-      .json({ message: "Proof of payment is required for GCash transactions" });
+    return res.status(400).json({
+      message: "Proof of payment is required for GCash transactions",
+    });
   }
 
-  // If Delivery, address
   if (orderType === "delivery" && !address) {
     return res
       .status(400)
@@ -42,17 +44,16 @@ const createOrder = async (req, res) => {
   }
 
   const emailRecord = await VerifiedEmail.findOne({ email: buyerEmail });
-
-  //OTP skip, verified
   const skipOtp = emailRecord && emailRecord.verifiedUntil > new Date();
 
   try {
     let subtotal = 0;
     let totalImpact = { meals: 0, scholarships: 0, reliefPacks: 0 };
-    console.log("Raw req.body.items:", req.body.items);
-    let items = req.body.items;
+    console.log("Raw req.body.items:", rawItems);
 
-    // If items is a string, parse it
+    let items = rawItems;
+
+    // Parse items if it's a string
     if (typeof items === "string") {
       try {
         items = JSON.parse(items);
@@ -63,24 +64,57 @@ const createOrder = async (req, res) => {
 
     for (const item of items) {
       const product = await Product.findById(String(item.productId).trim());
-
-      if (!product)
+      if (!product) {
         return res.status(404).json({ message: "Product not found" });
+      }
 
-      if (item.qty > product.quantity) {
+      const quantity = item.quantity || item.qty || 1;
+
+      if (quantity > product.quantity) {
         return res.status(400).json({
           message: `Not enough stock for ${product.title}. Available: ${product.quantity}`,
         });
       }
 
-      subtotal += product.price * item.qty;
-      totalImpact.meals += product.impact.meals * item.qty;
-      totalImpact.scholarships += product.impact.scholarships * item.qty;
-      totalImpact.reliefPacks += product.impact.reliefPacks * item.qty;
+      subtotal += product.price * quantity;
+      totalImpact.meals += product.impact.meals * quantity;
+      totalImpact.scholarships += product.impact.scholarships * quantity;
+      totalImpact.reliefPacks += product.impact.reliefPacks * quantity;
 
       item.unitPrice = product.price;
     }
 
+    if (orderType === "pickup" && paymentMethod === "cash") {
+      const newOrder = new Order({
+        buyerName,
+        buyerEmail,
+        items,
+        subtotal,
+        proofOfPayment,
+        impact: totalImpact,
+        paymentMethod,
+        orderType,
+        address: null,
+        status: "to receive",
+        otp: null,
+        otpExpires: null,
+      });
+
+      await newOrder.save();
+
+      await Notification.create({
+        orderId: newOrder._id,
+        message: `${buyerName} placed a new order.`,
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: "Pickup & Cash order received immediately",
+        orderId: newOrder._id,
+      });
+    }
+
+    // Skip OTP if email verified
     if (skipOtp) {
       const newOrder = new Order({
         buyerName,
@@ -100,14 +134,15 @@ const createOrder = async (req, res) => {
       await newOrder.save();
 
       return res.status(201).json({
+        success: true,
         message: "Order created without OTP (email already verified)",
         orderId: newOrder._id,
       });
     }
 
-    // Required OTP (expired o first time)
+    // Generate OTP for first-time or expired verification
     const otp = crypto.randomInt(100000, 999999).toString();
-    const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h expiration
 
     const newOrder = new Order({
       buyerName,
@@ -126,7 +161,7 @@ const createOrder = async (req, res) => {
 
     await newOrder.save();
 
-    //Send OTP email
+    // Send OTP email
     const htmlContent = VERIFY_TEMPLATE.replace(
       "{{email}}",
       buyerEmail
@@ -140,10 +175,12 @@ const createOrder = async (req, res) => {
     });
 
     res.status(201).json({
+      success: true,
       message: "Order created, OTP sent to email",
       orderId: newOrder._id,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
@@ -153,35 +190,68 @@ const verifyOrderOTP = async (req, res) => {
   try {
     const { orderId, otp } = req.body;
     const order = await Order.findById(orderId);
-
     if (!order) return res.status(404).json({ message: "Order not found" });
+
     if (order.otpExpires < new Date())
       return res.status(400).json({ message: "OTP expired" });
+
     if (order.otp !== otp)
       return res.status(400).json({ message: "Invalid OTP" });
 
-    // minus stock
+    // Deduct stock for all items
     for (const item of order.items) {
+      const qty = item.qty || item.quantity || 1;
       await Product.findByIdAndUpdate(item.productId, {
-        $inc: { quantity: -item.qty },
+        $inc: { quantity: -qty },
       });
     }
 
-    // store email, 30 days
+    // Store email for 30 days
     const verifiedUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
     await VerifiedEmail.findOneAndUpdate(
       { email: order.buyerEmail },
       { verifiedUntil },
       { upsert: true }
     );
 
+    // Update order status
     order.status = "pending";
     order.otp = null;
     order.otpExpires = null;
+
+    // --- Voucher logic for CASH + PICKUP ---
+    if (order.paymentMethod === "cash" && order.orderType === "pickup") {
+      const voucherCode = crypto.randomBytes(4).toString("hex").toUpperCase();
+      const voucherExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 2 weeks
+
+      order.ticketVoucher = {
+        code: voucherCode,
+        expiresAt: voucherExpiry,
+      };
+
+      // Send voucher email
+      const htmlContent = VOUCHER_TEMPLATE.replace(
+        "{{email}}",
+        order.buyerEmail
+      ).replace("{{otp}}", voucherCode);
+
+      await transporter.sendMail({
+        from: process.env.SENDER_EMAIL,
+        to: order.buyerEmail,
+        subject: "Your Voucher Ticket",
+        html: htmlContent,
+      });
+
+      console.log("Voucher email sent successfully to:", order.buyerEmail);
+    }
+
     await order.save();
 
-    res.json({ message: "Order confirmed & email remembered", order });
+    res.json({
+      success: true,
+      message: "Order confirmed & email remembered",
+      order,
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -258,11 +328,9 @@ const markOrderToReceive = async (req, res) => {
     if (status && status !== "to receive") order.status = status;
 
     if (trackingNumber) order.trackingNumber = trackingNumber;
-    console.log(order.ticketVoucher);
     //voucherr
     if (order.status === "to receive" && !order.ticketVoucher === false) {
       // Generate voucher
-      console.log("Generated voucehr");
       const voucherCode = crypto.randomBytes(4).toString("hex").toUpperCase();
       const voucherExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 2 weeks
 
@@ -454,7 +522,60 @@ const getOrder = async (req, res) => {
     if (!order) return res.status(404).json({ message: "Order not found" });
     res.json({ success: true, order });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server error", error: err.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: err.message });
+  }
+};
+
+const checkEmailVerified = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    let record = await VerifiedEmail.findOne({ email });
+    const now = new Date();
+
+    // check existing
+    if (record && record.verifiedUntil > now) {
+      return res.json({ email, verified: true });
+    }
+
+    // Generate OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+    if (!record) {
+      // new record
+      record = new VerifiedEmail({
+        email,
+        otp,
+        otpExpires,
+        verifiedUntil: null,
+      });
+    } else {
+      // Update record
+      record.otp = otp;
+      record.otpExpires = otpExpires;
+      record.verifiedUntil = null;
+    }
+    await record.save();
+
+    const htmlContent = VERIFY_TEMPLATE.replace("{{email}}", email).replace(
+      "{{otp}}",
+      otp
+    );
+    await transporter.sendMail({
+      from: process.env.SENDER_EMAIL,
+      to: email,
+      subject: "Your OTP Verification",
+      html: htmlContent,
+    });
+
+    res.json({ email, verified: false, message: "OTP sent to email" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -469,4 +590,5 @@ module.exports = {
   generateBundle,
   verifyOrderOTP,
   getOrder,
+  checkEmailVerified,
 };
