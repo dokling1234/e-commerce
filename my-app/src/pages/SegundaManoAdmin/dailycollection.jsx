@@ -41,6 +41,9 @@ const DataCollection = () => {
   const [preparedBy, setPreparedBy] = useState("");
   const [notedBy, setNotedBy] = useState("");
   const [validatedBy, setValidatedBy] = useState("");
+  const [pastBranch, setPastBranch] = useState("");
+  const [pastDate, setPastDate] = useState("");
+  const [branches, setBranches] = useState([]);
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   useEffect(() => {
@@ -49,6 +52,14 @@ const DataCollection = () => {
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Fetch available branches for dropdown
+  useEffect(() => {
+    fetch("http://localhost:5000/api/admin/daily-collection")
+      .then((res) => res.json())
+      .then((data) => setBranches(data.branches || []))
+      .catch((err) => console.error(err));
   }, []);
 
   // Handle input updates and auto-calculation
@@ -65,7 +76,6 @@ const DataCollection = () => {
     setRows(updated);
   };
 
-  // Add new row
   const addRow = () => {
     setRows([
       ...rows,
@@ -85,13 +95,11 @@ const DataCollection = () => {
     ]);
   };
 
-  // Remove row
   const removeRow = (index) => {
     const updated = rows.filter((_, i) => i !== index);
     setRows(updated);
   };
 
-  // Calculate grand total
   const grandTotal = rows.reduce(
     (sum, row) => sum + (parseFloat(row.total) || 0),
     0
@@ -103,7 +111,7 @@ const DataCollection = () => {
       date,
       rows,
       grandTotal,
-      preparedBy, // Replace with input value later
+      preparedBy,
       notedBy,
       validatedBy,
     };
@@ -122,7 +130,6 @@ const DataCollection = () => {
     else alert("Error saving: " + data.message);
   };
 
-  // Export CSV
   const exportCSV = () => {
     const headers = [
       "AR Ref No.",
@@ -162,6 +169,88 @@ const DataCollection = () => {
     a.href = url;
     a.download = `daily_collection_${date || "report"}.csv`;
     a.click();
+  };
+
+  // Download past collection
+  const downloadPastCollection = async () => {
+    if (!pastBranch || !pastDate) {
+      alert("Please select branch and date");
+      return;
+    }
+
+    try {
+      const query = new URLSearchParams({
+        branch: pastBranch,
+        date: pastDate,
+      });
+      console.log(pastDate)
+      console.log(pastBranch)
+      console.log(query)
+
+      const res = await fetch(
+        `http://localhost:5000/api/admin/daily-collection?${query}`
+      );
+      const data = await res.json();
+      const records = data.records || [];
+
+      if (records.length === 0) {
+        alert("No records found for this branch and date");
+        return;
+      }
+
+      const csvHeaders = [
+        "Branch",
+        "Date",
+        "AR Ref",
+        "Item",
+        "Qty",
+        "Amount",
+        "Total",
+        "Cash",
+        "Gcash",
+        "Discount",
+        "Reason",
+        "Approver",
+        "PreparedBy",
+        "NotedBy",
+        "ValidatedBy",
+      ];
+
+      const csvRows = [
+        csvHeaders.join(","),
+        ...records.flatMap((record) =>
+          record.rows.map((r) =>
+            [
+              record.branch,
+              record.date,
+              r.arRef,
+              r.item,
+              r.qty,
+              r.amount,
+              r.total,
+              r.cash,
+              r.gcash,
+              r.discount,
+              r.reason,
+              r.approver,
+              record.preparedBy,
+              record.notedBy,
+              record.validatedBy,
+            ].join(",")
+          )
+        ),
+      ];
+
+      const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `daily_collection_${pastBranch}_${pastDate}.csv`;
+      a.click();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to download past collection");
+    }
   };
 
   return (
@@ -475,6 +564,41 @@ const DataCollection = () => {
               </div>
               <button className="btn success" onClick={saveToDB}>
                 Save
+              </button>
+            </div>
+            <div className="form-panel mt-6">
+              <h2>Download Past Collection</h2>
+              <div className="grid col-span-2">
+                <div>
+                  <label className="form-label">Branch</label>
+                  <select
+                    className="form-input"
+                    value={pastBranch}
+                    onChange={(e) => setPastBranch(e.target.value)}
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Date</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={pastDate}
+                    onChange={(e) => setPastDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              <button
+                className="btn primary mt-2"
+                onClick={downloadPastCollection}
+              >
+                <Download size={16} /> Download Past Collection
               </button>
             </div>
           </div>
