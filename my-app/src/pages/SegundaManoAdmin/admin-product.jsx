@@ -73,7 +73,8 @@ const AdminProduct = () => {
       (p.arRef || "").toLowerCase().includes(q) ||
       (p.itemName || "").toLowerCase().includes(q) ||
       (p.category || "").toLowerCase().includes(q) ||
-      (p.size || "").toLowerCase().includes(q)
+      (p.size || "").toLowerCase().includes(q) ||
+      (p.quantity || "").toLowerCase().includes(q)
     );
   });
 
@@ -104,7 +105,7 @@ const AdminProduct = () => {
           p.category,
           p.size,
           p.price,
-          p.status,
+          p.quantity,
           `"${p.description}"`,
         ].join(",")
       ),
@@ -128,9 +129,30 @@ const AdminProduct = () => {
   const handleEdit = (item) => setEditData(item);
   const handleDelete = (item) => setDeleteItem(item);
 
-  const confirmDelete = (id) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    setDeleteItem(null);
+  const confirmDelete = async (id) => {
+    try {
+      const token = sessionStorage.getItem("sg_admin_token");
+
+      const res = await fetch(
+        `http://localhost:5000/api/admin/products/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to delete product");
+
+      // Remove from UI
+      setProducts((prev) => prev.filter((p) => p._id !== id));
+      setDeleteItem(null);
+      alert("Product deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting product:", err);
+      alert("Failed to delete product.");
+    }
   };
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -290,7 +312,7 @@ const AdminProduct = () => {
                   <th>Category</th>
                   <th>Size</th>
                   <th>Price</th>
-                  <th>Status</th>
+                  <th>Quantity</th>
                   <th>Description</th>
                   <th>Action</th>
                 </tr>
@@ -307,15 +329,7 @@ const AdminProduct = () => {
                     <td>{p.category}</td>
                     <td>{p.size}</td>
                     <td>₱{p.price}</td>
-                    <td>
-                      {p.status === "Active" ? (
-                        <span className="status active">Active</span>
-                      ) : p.status === "Low Stock" ? (
-                        <span className="status hold">Low Stock</span>
-                      ) : (
-                        <span className="status inactive">Out of Stock</span>
-                      )}
-                    </td>
+                    <td>{p.quantity}</td>
                     <td>{p.description}</td>
                     <td>
                       <ActionButtons
@@ -373,23 +387,81 @@ const AdminProduct = () => {
                     ✕
                   </button>
                 </div>
+
                 <div className="modal-content">
                   <label className="form-label">Product Name</label>
                   <input
                     type="text"
                     className="form-input mb-3"
-                    value={editData.name}
+                    value={editData.itemName}
                     onChange={(e) =>
-                      setEditData({ ...editData, name: e.target.value })
+                      setEditData({ ...editData, itemName: e.target.value })
                     }
                   />
+
+                  <label className="form-label">Category</label>
+                  <input
+                    type="text"
+                    className="form-input mb-3"
+                    value={editData.category}
+                    onChange={(e) =>
+                      setEditData({ ...editData, category: e.target.value })
+                    }
+                  />
+
+                  <label className="form-label">Price</label>
+                  <input
+                    type="number"
+                    className="form-input mb-3"
+                    value={editData.price}
+                    onChange={(e) =>
+                      setEditData({ ...editData, price: e.target.value })
+                    }
+                  />
+
+                  <label className="form-label">Quantity</label>
+                  <input
+                    type="number"
+                    className="form-input mb-3"
+                    value={editData.quantity}
+                    onChange={(e) =>
+                      setEditData({ ...editData, quantity: e.target.value })
+                    }
+                  />
+
                   <button
                     className="btn primary w-full"
-                    onClick={() => {
-                      setProducts((prev) =>
-                        prev.map((p) => (p.id === editData.id ? editData : p))
-                      );
-                      setEditData(null);
+                    onClick={async () => {
+                      try {
+                        const token = sessionStorage.getItem("sg_admin_token");
+
+                        const res = await fetch(
+                          `http://localhost:5000/api/admin/products/${editData._id}`,
+                          {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify(editData),
+                          }
+                        );
+
+                        if (!res.ok)
+                          throw new Error("Failed to update product");
+                        const updatedProduct = await res.json();
+
+                        setProducts((prev) =>
+                          prev.map((p) =>
+                            p._id === updatedProduct._id ? updatedProduct : p
+                          )
+                        );
+
+                        setEditData(null);
+                      } catch (err) {
+                        console.error("Error updating product:", err);
+                        alert("Failed to update product.");
+                      }
                     }}
                   >
                     Save Changes
@@ -418,7 +490,7 @@ const AdminProduct = () => {
                   </button>
                   <button
                     className="btn danger"
-                    onClick={() => confirmDelete(deleteItem.id)}
+                    onClick={() => confirmDelete(deleteItem._id)}
                   >
                     Delete
                   </button>

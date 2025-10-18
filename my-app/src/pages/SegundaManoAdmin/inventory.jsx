@@ -97,7 +97,7 @@ const Inventory = () => {
       "Category",
       "Size",
       "Price",
-      "Status",
+      // "Quantity",
       "Description",
     ];
 
@@ -111,7 +111,7 @@ const Inventory = () => {
           inv.category,
           inv.size,
           inv.price,
-          inv.status,
+          // inv.quantity,
           `"${inv.description}"`,
         ].join(",")
       ),
@@ -135,9 +135,30 @@ const Inventory = () => {
   const handleEdit = (item) => setEditData(item);
   const handleDelete = (item) => setDeleteItem(item);
 
-  const confirmDelete = (id) => {
-    setInventory((prev) => prev.filter((i) => i.id !== id));
-    setDeleteItem(null);
+  const confirmDelete = async (id) => {
+    try {
+      const token = sessionStorage.getItem("sg_admin_token");
+
+      const res = await fetch(
+        `http://localhost:5000/api/admin/inventory/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to delete product");
+
+      // Remove from UI
+      setInventory((prev) => prev.filter((p) => p._id !== id));
+      setDeleteItem(null);
+      alert("Product deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting product:", err);
+      alert("Failed to delete product.");
+    }
   };
 
   return (
@@ -291,7 +312,7 @@ const Inventory = () => {
                   <th>Category</th>
                   <th>Size</th>
                   <th>Price</th>
-                  <th>Status</th>
+                  {/* <th>Quantity</th> */}
                   <th>Description</th>
                   <th>Action</th>
                 </tr>
@@ -309,13 +330,7 @@ const Inventory = () => {
                     <td>{inv.size}</td>
                     <td>₱{inv.price}</td>
                     <td>
-                      {inv.status === "Available" ? (
-                        <span className="status active">Available</span>
-                      ) : inv.status === "Low Stock" ? (
-                        <span className="status hold">Low Stock</span>
-                      ) : (
-                        <span className="status inactive">Out of Stock</span>
-                      )}
+                      {inv.quantity}
                     </td>
                     <td>{inv.description}</td>
                     <td>
@@ -366,7 +381,7 @@ const Inventory = () => {
             <div className="modal-overlay">
               <div className="modal-box max-w-md">
                 <div className="modal-header">
-                  <h2>Edit Item</h2>
+                  <h2>Edit Product</h2>
                   <button
                     className="modal-close"
                     onClick={() => setEditData(null)}
@@ -374,23 +389,71 @@ const Inventory = () => {
                     ✕
                   </button>
                 </div>
+
                 <div className="modal-content">
-                  <label className="form-label">Item Name</label>
+                  <label className="form-label">Product Name</label>
                   <input
                     type="text"
                     className="form-input mb-3"
-                    value={editData.name}
+                    value={editData.itemName}
                     onChange={(e) =>
-                      setEditData({ ...editData, name: e.target.value })
+                      setEditData({ ...editData, itemName: e.target.value })
                     }
                   />
+
+                  <label className="form-label">Category</label>
+                  <input
+                    type="text"
+                    className="form-input mb-3"
+                    value={editData.category}
+                    onChange={(e) =>
+                      setEditData({ ...editData, category: e.target.value })
+                    }
+                  />
+
+                  <label className="form-label">Price</label>
+                  <input
+                    type="number"
+                    className="form-input mb-3"
+                    value={editData.price}
+                    onChange={(e) =>
+                      setEditData({ ...editData, price: e.target.value })
+                    }
+                  />
+
                   <button
                     className="btn primary w-full"
-                    onClick={() => {
-                      setInventory((prev) =>
-                        prev.map((i) => (i.id === editData.id ? editData : i))
-                      );
-                      setEditData(null);
+                    onClick={async () => {
+                      try {
+                        const token = sessionStorage.getItem("sg_admin_token");
+
+                        const res = await fetch(
+                          `http://localhost:5000/api/admin/inventory/${editData._id}`,
+                          {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify(editData),
+                          }
+                        );
+
+                        if (!res.ok)
+                          throw new Error("Failed to update product");
+                        const updatedProduct = await res.json();
+
+                        setInventory((prev) =>
+                          prev.map((p) =>
+                            p._id === updatedProduct._id ? updatedProduct : p
+                          )
+                        );
+
+                        setEditData(null);
+                      } catch (err) {
+                        console.error("Error updating product:", err);
+                        alert("Failed to update product.");
+                      }
                     }}
                   >
                     Save Changes
@@ -419,7 +482,7 @@ const Inventory = () => {
                   </button>
                   <button
                     className="btn danger"
-                    onClick={() => confirmDelete(deleteItem.id)}
+                    onClick={() => confirmDelete(deleteItem._id)}
                   >
                     Delete
                   </button>
