@@ -24,7 +24,6 @@ const createOrder = async (req, res) => {
 
     const proofOfPayment = req.file ? req.file.path : null;
 
-
     if (!paymentMethod) {
       return res
         .status(400)
@@ -32,11 +31,9 @@ const createOrder = async (req, res) => {
     }
 
     if (paymentMethod === "gcash" && !proofOfPayment) {
-      return res
-        .status(400)
-        .json({
-          message: "Proof of payment is required for GCash transactions",
-        });
+      return res.status(400).json({
+        message: "Proof of payment is required for GCash transactions",
+      });
     }
 
     if (orderType === "delivery" && !address) {
@@ -123,7 +120,6 @@ const createOrder = async (req, res) => {
         html: htmlContent,
       });
 
-
       return res.status(200).json({
         message: "OTP sent",
         requiresOtp: true,
@@ -156,7 +152,6 @@ const createOrder = async (req, res) => {
       subject: "Your Ticket Voucher",
       html: voucherEmail,
     });
-
 
     return res.status(200).json({
       success: true,
@@ -225,7 +220,6 @@ const verifyOrderOTP = async (req, res) => {
         subject: "Your Voucher Ticket",
         html: htmlContent,
       });
-
     }
 
     await order.save();
@@ -285,9 +279,11 @@ const updateOrderStatus = async (req, res) => {
 //pending => to receive
 const markOrderToReceive = async (req, res) => {
   try {
+    console.log("markOrderToReceive");
     const { id } = req.params;
     const { status, trackingNumber, paymentStatus } = req.body;
-
+    console.log(req.body);
+    console.log(req.params);
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -324,9 +320,6 @@ const markOrderToReceive = async (req, res) => {
         expiresAt: voucherExpiry,
       };
 
-      
-
-
       // Send voucher email
       const htmlContent = VOUCHER_TEMPLATE.replace(
         "{{email}}",
@@ -339,7 +332,6 @@ const markOrderToReceive = async (req, res) => {
         subject: "Your Voucher Ticket",
         html: htmlContent,
       });
-
 
       // Deduct stock
       for (const item of order.items) {
@@ -362,7 +354,7 @@ const markOrderToReceive = async (req, res) => {
 const markOrderReceived = async (req, res) => {
   try {
     const { id } = req.params;
-
+console.log(id)
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -478,15 +470,15 @@ const createManualOrder = async (req, res) => {
     }
 
     const newOrder = new Order({
-      buyerName: "Walk-in Customer",
-      buyerEmail: "walk-in@store.local",
+      buyerName,
+      buyerEmail,
       items,
       subtotal,
       proofOfPayment,
       impact: totalImpact,
-      status: "confirmed",
-      paymentStatus: "paid",
-      purchaseMethod: "walk-in",
+      status: "pending",
+      paymentStatus: "pending",
+      purchaseMethod,
     });
 
     await newOrder.save();

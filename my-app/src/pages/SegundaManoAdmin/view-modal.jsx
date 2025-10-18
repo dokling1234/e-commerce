@@ -86,16 +86,17 @@ const ViewModal = ({ data, onClose }) => {
               <p><strong>Price:</strong> ₱{data.price}</p>
               <p><strong>Status:</strong> {data.status}</p>
               <p><strong>Description:</strong> {data.description}</p>
+              
             </>
           )}
         </div>
 
         <div className="modal-actions">
-          {data.items && (
-            <button className="btn-accept" onClick={handleAcceptOrder}>
-              Accept Order
-            </button>
-          )}
+          {/* {data.items && (
+            // <button className="btn-accept" onClick={handleAcceptOrder}>
+            //   Accept Order
+            // </button>
+          )} */}
           <button className="btn primary" onClick={onClose}>
             Close
           </button>

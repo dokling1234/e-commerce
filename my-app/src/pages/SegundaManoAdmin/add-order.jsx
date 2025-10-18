@@ -34,6 +34,7 @@ const AddOrder = () => {
   const [subtotal, setSubtotal] = useState(0);
   const [shippingFee, setShippingFee] = useState(0);
   const [grandTotal, setGrandTotal] = useState(0);
+  const [products, setProducts] = useState([]);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -51,9 +52,13 @@ const AddOrder = () => {
     shoes: 1200,
   };
 
-  // Update subtotal, shipping fee, and grand total dynamically
   useEffect(() => {
-    const price = productPrices[formData.product] || 0;
+    const selectedProduct = products.find((p) => p._id === formData.product);
+
+    const price = selectedProduct ? selectedProduct.price : 0;
+    console.log(price);
+    const maxQty = selectedProduct ? selectedProduct.quantity : 1;
+
     const calcSubtotal = price * (formData.quantity || 1);
     const calcShipping =
       formData.shippingMethod === "delivery"
@@ -61,22 +66,105 @@ const AddOrder = () => {
         : formData.shippingMethod === "pickup"
         ? 0
         : 0;
+
     setSubtotal(calcSubtotal);
     setShippingFee(calcShipping);
     setGrandTotal(calcSubtotal + calcShipping);
-  }, [formData.product, formData.quantity, formData.shippingMethod]);
+  }, [formData.product, formData.quantity, formData.shippingMethod, products]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const token = sessionStorage.getItem("sg_admin_token");
+        const res = await fetch("http://localhost:5000/api/admin/products", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        // Filter only products with stock available
+        const available = data.filter((p) => p.quantity > 0);
+        setProducts(available);
+      } catch (err) {
+        console.error("Failed to fetch products", err);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+  // Update subtotal, shipping fee, and grand total dynamically
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "quantity" ? parseInt(value) || 1 : value,
-    }));
+
+    if (name === "quantity") {
+      const selectedProduct = products.find((p) => p._id === formData.product);
+      const maxQty = selectedProduct ? selectedProduct.quantity : 1;
+      const qty = Math.min(parseInt(value) || 1, maxQty);
+
+      setFormData((prev) => ({ ...prev, quantity: qty }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("Order added successfully!");
+    const token = sessionStorage.getItem("sg_admin_token"); // If protected route
+
+    const selectedProduct = products.find((p) => p._id === formData.product);
+    if (!selectedProduct) {
+      alert("Invalid product selected!");
+      return;
+    }
+
+    const orderData = {
+      buyerName: formData.customerName,
+      buyerEmail: formData.email,
+      customer: {
+        firstName: formData.customerName,
+        phone: formData.contactNumber,
+      },
+      address: {
+        street: formData.address,
+        city: formData.city,
+        state: formData.province,
+        zip: "",
+      },
+      items: [
+        {
+          productId: formData.product,
+          qty: formData.quantity,
+          unitPrice: selectedProduct.price, // ✅ NOW DEFINED
+        },
+      ],
+      subtotal: selectedProduct.price * formData.quantity,
+      paymentMethod: formData.paymentMethod,
+      orderType: formData.shippingMethod,
+      additionalNotes: formData.notes,
+      purchaseMethod: "walk-in",
+    };
+
+    console.log(orderData); // Debug
+
+    try {
+      const res = await fetch(
+        "http://localhost:5000/api/admin/orders/manual-order",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(orderData),
+        }
+      );
+
+      if (!res.ok) throw new Error("Order failed");
+      alert("Order placed successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to place order");
+    }
   };
 
   return (
@@ -86,14 +174,21 @@ const AddOrder = () => {
         className="admin-settings-mobile-menu-toggle"
         onClick={toggleSidebar}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <path d="M3 12h18M3 6h18M3 18h18" />
         </svg>
       </button>
 
       {/* Overlay */}
       <div
-        className={`admin-settings-sidebar-overlay ${sidebarOpen ? "open" : ""}`}
+        className={`admin-settings-sidebar-overlay ${
+          sidebarOpen ? "open" : ""
+        }`}
         onClick={toggleSidebar}
       ></div>
 
@@ -110,33 +205,60 @@ const AddOrder = () => {
 
           <nav className="admin-nav">
             <div className="admin-section-title">GENERAL</div>
-            <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Home size={18} /> Dashboard
             </NavLink>
-            <NavLink to="/inventory" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/inventory"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Boxes size={18} /> Inventory
             </NavLink>
-            <NavLink to="/admin-product" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/admin-product"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Box size={18} /> Product
             </NavLink>
-            <NavLink to="/orders" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/orders"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <ClipboardList size={18} /> Order Management
             </NavLink>
-            <NavLink to="/beneficiary" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/beneficiary"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <User size={18} /> Beneficiary
             </NavLink>
-            <NavLink to="/announcement" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/announcement"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Megaphone size={18} /> Announcement
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
-            <NavLink to="/dailycollection" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/dailycollection"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <FilePen size={18} /> Daily Collection
             </NavLink>
-            <NavLink to="/activity" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/activity"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Activity size={18} /> Activity Log
             </NavLink>
-            <NavLink to="/account-settings" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/account-settings"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Settings size={18} /> Account Settings
             </NavLink>
           </nav>
@@ -154,7 +276,9 @@ const AddOrder = () => {
               <div className="form-title">Customer Information</div>
               <div className="grid">
                 <div className="form-group flex flex-col">
-                  <label className="form-label">Customer Name <span className="text-red-500">*</span></label>
+                  <label className="form-label">
+                    Customer Name <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     name="customerName"
@@ -233,7 +357,9 @@ const AddOrder = () => {
               <div className="form-title">Product Selection</div>
               <div className="grid">
                 <div className="form-group flex flex-col">
-                  <label className="form-label">Product <span className="text-red-500">*</span></label>
+                  <label className="form-label">
+                    Product <span className="text-red-500">*</span>
+                  </label>
                   <select
                     name="product"
                     value={formData.product}
@@ -242,9 +368,11 @@ const AddOrder = () => {
                     className="form-select"
                   >
                     <option value="">Select a product</option>
-                    <option value="shirt">Shirt — ₱500</option>
-                    <option value="pants">Pants — ₱700</option>
-                    <option value="shoes">Shoes — ₱1200</option>
+                    {products.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.itemName} — ₱{p.price} ({p.quantity} left)
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -254,6 +382,10 @@ const AddOrder = () => {
                     type="number"
                     name="quantity"
                     min="1"
+                    max={
+                      products.find((p) => p._id === formData.product)
+                        ?.quantity || 1
+                    }
                     value={formData.quantity}
                     onChange={handleChange}
                     className="form-input"
@@ -275,9 +407,8 @@ const AddOrder = () => {
                     className="form-select"
                   >
                     <option value="">Select payment method</option>
-                    <option value="cod">Cash on Delivery</option>
+                    <option value="cash">Cash on Delivery</option>
                     <option value="gcash">GCash</option>
-                    <option value="bank">Bank Transfer</option>
                   </select>
                 </div>
 
@@ -312,15 +443,40 @@ const AddOrder = () => {
             <div className="form-panel">
               <div className="form-title">Order Summary</div>
               <div className="summary" style={{ lineHeight: "1.8" }}>
-                <p><strong>Customer:</strong> {formData.customerName || "—"}</p>
-                <p><strong>Product:</strong> {formData.product ? `${formData.product.charAt(0).toUpperCase() + formData.product.slice(1)}` : "—"}</p>
-                <p><strong>Quantity:</strong> {formData.quantity}</p>
-                <p><strong>Payment:</strong> {formData.paymentMethod || "—"}</p>
-                <p><strong>Shipping:</strong> {formData.shippingMethod || "—"}</p>
+                <p>
+                  <strong>Customer:</strong> {formData.customerName || "—"}
+                </p>
+                <p>
+                  <strong>Product:</strong>{" "}
+                  {formData.product
+                    ? `${
+                        formData.product.charAt(0).toUpperCase() +
+                        formData.product.slice(1)
+                      }`
+                    : "—"}
+                </p>
+                <p>
+                  <strong>Quantity:</strong> {formData.quantity}
+                </p>
+                <p>
+                  <strong>Payment:</strong> {formData.paymentMethod || "—"}
+                </p>
+                <p>
+                  <strong>Shipping:</strong> {formData.shippingMethod || "—"}
+                </p>
                 <hr style={{ margin: "12px 0" }} />
-                <p><strong>Subtotal:</strong> ₱{subtotal.toLocaleString()}</p>
-                <p><strong>Shipping Fee:</strong> ₱{shippingFee.toLocaleString()}</p>
-                <p><strong>Grand Total:</strong> <span style={{ color: "#dc2626", fontWeight: 700 }}>₱{grandTotal.toLocaleString()}</span></p>
+                <p>
+                  <strong>Subtotal:</strong> ₱{subtotal.toLocaleString()}
+                </p>
+                <p>
+                  <strong>Shipping Fee:</strong> ₱{shippingFee.toLocaleString()}
+                </p>
+                <p>
+                  <strong>Grand Total:</strong>{" "}
+                  <span style={{ color: "#dc2626", fontWeight: 700 }}>
+                    ₱{grandTotal.toLocaleString()}
+                  </span>
+                </p>
               </div>
 
               <div className="form-actions">

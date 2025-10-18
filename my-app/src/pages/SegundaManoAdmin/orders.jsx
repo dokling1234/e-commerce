@@ -120,10 +120,28 @@ const OrderManagement = () => {
   const handleEdit = (item) => setEditData(item);
   const handleDelete = (item) => setDeleteItem(item);
 
-  const confirmDelete = (id) => {
-    setOrders((prev) => prev.filter((o) => o.id !== id));
-    setDeleteItem(null);
+  const confirmDelete = async (id) => {
+    try {
+      const token = sessionStorage.getItem("sg_admin_token");
+      const res = await fetch(`http://localhost:5000/api/admin/orders/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to delete order");
+
+      alert("Order deleted successfully!");
+      setOrders((prev) => prev.filter((o) => o._id !== id));
+      setDeleteItem(null);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Error deleting order");
+    }
   };
+
   const indexOfLastOrder = currentPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
   const currentOrders = filtered.slice(indexOfFirstOrder, indexOfLastOrder);
@@ -137,6 +155,40 @@ const OrderManagement = () => {
   }
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+
+  const updateToReceive = async (id) => {
+    await updateStatus(id, "to-receive");
+  };
+
+  const updateReceived = async (id) => {
+    await updateStatus(id, "received");
+  };
+
+  const cancelOrder = async (id) => {
+    await updateStatus(id, "cancel");
+  };
+
+  const updateStatus = async (id, action) => {
+    const token = sessionStorage.getItem("sg_admin_token");
+    let url = `http://localhost:5000/api/admin/orders/${id}/${action}`;
+
+    try {
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const updatedOrder = await res.json();
+      setOrders((prev) =>
+        prev.map((o) => (o._id === updatedOrder._id ? updatedOrder : o))
+      );
+    } catch (err) {
+      console.error("Error:", err);
+    }
+  };
 
   return (
     <div className="admin-activity">
@@ -290,6 +342,7 @@ const OrderManagement = () => {
                   <th>Date</th>
                   <th>Time</th>
                   <th>Status</th>
+                  <th>Payment Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -315,6 +368,11 @@ const OrderManagement = () => {
                       ) : (
                         <span className="status hold">{o.status}</span>
                       )}
+                    </td>
+                    <td>
+                      {o.paymentStatus
+                        ? o.paymentStatus.toUpperCase()
+                        : "PENDING"}
                     </td>
                     <td>
                       <ActionButtons
@@ -380,14 +438,106 @@ const OrderManagement = () => {
                   <select
                     className="form-select mb-4"
                     value={editData.status}
-                    onChange={(e) =>
-                      setEditData({ ...editData, status: e.target.value })
-                    }
+                    onChange={async (e) => {
+                      const newStatus = e.target.value;
+                      setEditData({ ...editData, status: newStatus });
+
+                      try {
+                        const token = sessionStorage.getItem("sg_admin_token");
+                        let url = `http://localhost:5000/api/admin/orders/${editData._id}`;
+
+                        if (
+                          newStatus === "to receive" ||
+                          newStatus === "Pending"
+                        ) {
+                          url += "/to-receive";
+                        } else if (
+                          newStatus === "received" ||
+                          newStatus === "Received"
+                        ) {
+                          url += "/received";
+                        } else if (
+                          newStatus === "cancelled" ||
+                          newStatus === "Cancelled"
+                        ) {
+                          // If cancel is handled separately
+                          url += ""; // stay on base /:id (default cancel endpoint)
+                        }
+
+                        const res = await fetch(url, {
+                          method: "PUT",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ status: newStatus }),
+                        });
+
+                        const result = await res.json();
+                        if (!res.ok)
+                          throw new Error(
+                            result.message || "Failed to update status"
+                          );
+
+                        alert(`Order updated to ${newStatus}`);
+                        window.location.reload(); // Refresh UI
+                      } catch (err) {
+                        console.error(err);
+                        alert(err.message || "Failed to update order");
+                      }
+                    }}
                   >
-                    <option>Received</option>
-                    <option>Pending</option>
-                    <option>Cancelled</option>
+                    <option value="to receive">To Receive</option>
+                    <option value="received">Received</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
+
+                  <label className="form-label mt-4">Payment Status</label>
+                  <select
+                    className="form-select mb-4"
+                    value={editData.paymentStatus || "pending"}
+                    onChange={async (e) => {
+                      const newPaymentStatus = e.target.value;
+                      setEditData({
+                        ...editData,
+                        paymentStatus: newPaymentStatus,
+                      });
+
+                      try {
+                        const token = sessionStorage.getItem("sg_admin_token");
+                        const res = await fetch(
+                          `http://localhost:5000/api/admin/orders/${editData._id}`,
+                          {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({
+                              paymentStatus: newPaymentStatus,
+                            }),
+                          }
+                        );
+
+                        const result = await res.json();
+                        if (!res.ok)
+                          throw new Error(
+                            result.message || "Failed to update payment status"
+                          );
+
+                        alert(`Payment status updated to ${newPaymentStatus}`);
+                        window.location.reload();
+                      } catch (err) {
+                        console.error(err);
+                        alert(err.message || "Failed to update payment status");
+                      }
+                    }}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="failed">Failed</option>
+                  </select>
+
                   <button
                     className="btn primary w-full"
                     onClick={() => {
@@ -411,7 +561,7 @@ const OrderManagement = () => {
                 <h2 className="text-lg font-semibold mb-3">Confirm Delete</h2>
                 <p>
                   Are you sure you want to delete order{" "}
-                  <strong>{deleteItem.productName}</strong>?
+                  <strong>{deleteItem._id}</strong>?
                 </p>
                 <div className="flex justify-center gap-3 mt-6">
                   <button
@@ -422,7 +572,7 @@ const OrderManagement = () => {
                   </button>
                   <button
                     className="btn danger"
-                    onClick={() => confirmDelete(deleteItem.id)}
+                    onClick={() => confirmDelete(deleteItem._id)}
                   >
                     Delete
                   </button>

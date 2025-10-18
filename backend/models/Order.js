@@ -81,9 +81,9 @@ const OrderSchema = new mongoose.Schema(
     purchaseMethod: {
       type: String,
       enum: ["online", "walk-in"],
-      required: true,
       default: "online",
     },
+    additionalNotes: String
   },
   { timestamps: true }
 );
