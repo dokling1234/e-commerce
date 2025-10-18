@@ -13,7 +13,7 @@ import {
   Download,
   Boxes,
   Users,
-  FilePen
+  FilePen,
 } from "lucide-react";
 import "../../css/forms.css";
 import "../../css/adminsidebar.css";
@@ -38,7 +38,9 @@ const DataCollection = () => {
       approver: "",
     },
   ]);
-
+  const [preparedBy, setPreparedBy] = useState("");
+  const [notedBy, setNotedBy] = useState("");
+  const [validatedBy, setValidatedBy] = useState("");
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   useEffect(() => {
@@ -90,7 +92,35 @@ const DataCollection = () => {
   };
 
   // Calculate grand total
-  const grandTotal = rows.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0);
+  const grandTotal = rows.reduce(
+    (sum, row) => sum + (parseFloat(row.total) || 0),
+    0
+  );
+
+  const saveToDB = async () => {
+    const payload = {
+      branch,
+      date,
+      rows,
+      grandTotal,
+      preparedBy, // Replace with input value later
+      notedBy,
+      validatedBy,
+    };
+
+    const res = await fetch(
+      "http://localhost:5000/api/admin/daily-collection",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const data = await res.json();
+    if (res.ok) alert("Saved successfully!");
+    else alert("Error saving: " + data.message);
+  };
 
   // Export CSV
   const exportCSV = () => {
@@ -141,14 +171,21 @@ const DataCollection = () => {
         className="admin-settings-mobile-menu-toggle"
         onClick={toggleSidebar}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <path d="M3 12h18M3 6h18M3 18h18" />
         </svg>
       </button>
 
       {/* Overlay */}
       <div
-        className={`admin-settings-sidebar-overlay ${sidebarOpen ? "open" : ""}`}
+        className={`admin-settings-sidebar-overlay ${
+          sidebarOpen ? "open" : ""
+        }`}
         onClick={toggleSidebar}
       ></div>
 
@@ -165,57 +202,75 @@ const DataCollection = () => {
 
           <nav className="admin-nav">
             <div className="admin-section-title">GENERAL</div>
-            <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Home size={18} /> Dashboard
             </NavLink>
-            <NavLink to="/inventory" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/inventory"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Boxes size={18} /> Inventory
             </NavLink>
-            <NavLink to="/admin-product" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/admin-product"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Box size={18} /> Product
             </NavLink>
-            <NavLink to="/orders" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/orders"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <ClipboardList size={18} /> Order Management
             </NavLink>
-            <NavLink to="/beneficiary" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/beneficiary"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <User size={18} /> Beneficiary
             </NavLink>
-            <NavLink to="/announcement" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/announcement"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Megaphone size={18} /> Announcement
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
-          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/activity"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Activity size={18} /> Activity Log
+              </NavLink>
+            )}
+
+            {/* Staff Management - Superadmin Only */}
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/staff-management"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Users size={18} /> Staff Management
+              </NavLink>
+            )}
             <NavLink
-              to="/activity"
+              to="/dailycollection"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Activity size={18} /> Activity Log
+              <FilePen size={18} /> Daily Collection
             </NavLink>
-          )}
 
-          {/* Staff Management - Superadmin Only */}
-          {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
             <NavLink
-              to="/staff-management"
+              to="/account-settings"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              <Users size={18} /> Staff Management
+              <Settings size={18} /> Account Settings
             </NavLink>
-          )}
-          <NavLink
-            to="/dailycollection"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            <FilePen size={18} /> Daily Collection
-          </NavLink>
-
-          <NavLink
-            to="/account-settings"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            <Settings size={18} /> Account Settings
-          </NavLink>
           </nav>
         </aside>
 
@@ -271,18 +326,103 @@ const DataCollection = () => {
                   <tbody>
                     {rows.map((row, i) => (
                       <tr key={i}>
-                        <td><input className="form-input" value={row.arRef} onChange={(e) => handleChange(i, "arRef", e.target.value)} /></td>
-                        <td><input className="form-input" value={row.item} onChange={(e) => handleChange(i, "item", e.target.value)} /></td>
-                        <td><input className="form-input" type="number" value={row.qty} onChange={(e) => handleChange(i, "qty", e.target.value)} /></td>
-                        <td><input className="form-input" type="number" value={row.amount} onChange={(e) => handleChange(i, "amount", e.target.value)} /></td>
-                        <td><input className="form-input bg-gray-100" readOnly value={row.total.toFixed(2)} /></td>
-                        <td><input className="form-input" type="number" value={row.cash} onChange={(e) => handleChange(i, "cash", e.target.value)} /></td>
-                        <td><input className="form-input" type="number" value={row.gcash} onChange={(e) => handleChange(i, "gcash", e.target.value)} /></td>
-                        <td><input className="form-input" value={row.discount} onChange={(e) => handleChange(i, "discount", e.target.value)} /></td>
-                        <td><input className="form-input" value={row.reason} onChange={(e) => handleChange(i, "reason", e.target.value)} /></td>
-                        <td><input className="form-input" value={row.approver} onChange={(e) => handleChange(i, "approver", e.target.value)} /></td>
                         <td>
-                          <button className="action-btn delete" onClick={() => removeRow(i)}>
+                          <input
+                            className="form-input"
+                            value={row.arRef}
+                            onChange={(e) =>
+                              handleChange(i, "arRef", e.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="form-input"
+                            value={row.item}
+                            onChange={(e) =>
+                              handleChange(i, "item", e.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="form-input"
+                            type="number"
+                            value={row.qty}
+                            onChange={(e) =>
+                              handleChange(i, "qty", e.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="form-input"
+                            type="number"
+                            value={row.amount}
+                            onChange={(e) =>
+                              handleChange(i, "amount", e.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="form-input bg-gray-100"
+                            readOnly
+                            value={row.total.toFixed(2)}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="form-input"
+                            type="number"
+                            value={row.cash}
+                            onChange={(e) =>
+                              handleChange(i, "cash", e.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="form-input"
+                            type="number"
+                            value={row.gcash}
+                            onChange={(e) =>
+                              handleChange(i, "gcash", e.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="form-input"
+                            value={row.discount}
+                            onChange={(e) =>
+                              handleChange(i, "discount", e.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="form-input"
+                            value={row.reason}
+                            onChange={(e) =>
+                              handleChange(i, "reason", e.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="form-input"
+                            value={row.approver}
+                            onChange={(e) =>
+                              handleChange(i, "approver", e.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <button
+                            className="action-btn delete"
+                            onClick={() => removeRow(i)}
+                          >
                             <Trash2 size={16} />
                           </button>
                         </td>
@@ -303,24 +443,39 @@ const DataCollection = () => {
             </div>
 
             <div className="form-panel">
-              <h3 className="form-title">Grand Total: ₱{grandTotal.toFixed(2)}</h3>
+              <h3 className="form-title">
+                Grand Total: ₱{grandTotal.toFixed(2)}
+              </h3>
             </div>
 
             <div className="form-panel">
-              <div className="grid col-span-2">
-                <div>
-                  <label className="form-label">Prepared by</label>
-                  <input className="form-input" />
-                </div>
-                <div>
-                  <label className="form-label">Noted by</label>
-                  <input className="form-input" />
-                </div>
-                <div>
-                  <label className="form-label">Validated by</label>
-                  <input className="form-input" />
-                </div>
+              <div>
+                <label className="form-label">Prepared by</label>
+                <input
+                  className="form-input"
+                  value={preparedBy}
+                  onChange={(e) => setPreparedBy(e.target.value)}
+                />
               </div>
+              <div>
+                <label className="form-label">Noted by</label>
+                <input
+                  className="form-input"
+                  value={notedBy}
+                  onChange={(e) => setNotedBy(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="form-label">Validated by</label>
+                <input
+                  className="form-input"
+                  value={validatedBy}
+                  onChange={(e) => setValidatedBy(e.target.value)}
+                />
+              </div>
+              <button className="btn success" onClick={saveToDB}>
+                Save
+              </button>
             </div>
           </div>
         </main>

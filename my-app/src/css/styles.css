@@ -917,162 +917,161 @@ body {
    Checkout Page Styles
    =============================== */
 
-/* For Lucide icons and text side by side */
-.option-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
+  /* For Lucide icons and text side by side */
+  .option-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
 
-/* Group container for order type & payment method */
-.option-group {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem; /* spacing between buttons */
-  flex-wrap: wrap; /* ensures responsiveness */
-  margin-top: 10px;
-}
+  /* Group container for order type & payment method */
+  .option-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem; /* spacing between buttons */
+    flex-wrap: wrap; /* ensures responsiveness */
+    margin-top: 10px;
+  }
 
-/* Option card design */
-.option-card {
-  flex: 1 1 45%;
-  max-width: 250px;
-  text-align: center;
-  border: 2px solid #ddd;
-  border-radius: 16px;
-  padding: 16px 20px;
-  background-color: #fff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+  /* Option card design */
+  .option-card {
+    flex: 1 1 45%;
+    max-width: 250px;
+    text-align: center;
+    border: 2px solid #ddd;
+    border-radius: 16px;
+    padding: 16px 20px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-.option-card:hover {
-  border-color: #007bff;
-  background-color: #f5faff;
-}
+  .option-card:hover {
+    border-color: #007bff;
+    background-color: #f5faff;
+  }
 
-/* Active state */
-.option-card.active {
-  border-color: #0070f3;
-  background-color: #f0f8ff;
-  box-shadow: 0 6px 14px rgba(0, 112, 243, 0.2);
-}
+  /* Active state */
+  .option-card.active {
+    border-color: #0070f3;
+    background-color: #f0f8ff;
+    box-shadow: 0 6px 14px rgba(0, 112, 243, 0.2);
+  }
 
-/* Hide default radio buttons */
-.option-card input[type="radio"] {
-  display: none;
-}
+  /* Hide default radio buttons */
+  .option-card input[type="radio"] {
+    display: none;
+  }
 
-/* Make selected text slightly bold */
-.option-card.active span {
-  font-weight: 600;
-}
+  /* Make selected text slightly bold */
+  .option-card.active span {
+    font-weight: 600;
+  }
 
-/* ===============================
+  /* ===============================
    Voucher Section (inline field)
    =============================== */
-.voucher-inline {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 15px;
-}
+  .voucher-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+  }
 
-.voucher-inline input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 15px;
-}
+  .voucher-inline input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+  }
 
-.voucher-btn {
-  background-color: #d32f2f; /* red */
-  color: #fff;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s;
-}
+  .voucher-btn {
+    background-color: #d32f2f; /* red */
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s;
+  }
 
-.voucher-btn:hover {
-  background-color: #b71c1c;
-}
+  .voucher-btn:hover {
+    background-color: #b71c1c;
+  }
 
-/* ===============================
+  /* ===============================
    Section Styling
    =============================== */
-.checkout-section {
-  background-color: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
+  .checkout-section {
+    background-color: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
 
-.checkout-section h3 {
-  margin-bottom: 10px;
-  font-weight: 600;
-}
+  .checkout-section h3 {
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
 
-/* GCash section styles */
-.gcash-section {
-  margin-top: 20px; /* added more space above */
-}
+  /* GCash section styles */
+  .gcash-section {
+    margin-top: 20px; /* added more space above */
+  }
 
-.checkout-qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 25px 0 20px 0; /* more spacing above and below QR */
-}
+  .checkout-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 25px 0 20px 0; /* more spacing above and below QR */
+  }
 
-.checkout-qr img {
-  width: 160px; /* bigger QR */
-  height: 160px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 5px;
-  background-color: #fff;
-}
+  .checkout-qr img {
+    width: 160px; /* bigger QR */
+    height: 160px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 5px;
+    background-color: #fff;
+  }
 
-.qr-text {
-  font-size: 14px;
-  color: #555;
-  margin-top: 8px;
-}
+  .qr-text {
+    font-size: 14px;
+    color: #555;
+    margin-top: 8px;
+  }
 
-.checkout-field {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 12px;
-}
+  .checkout-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+  }
 
-.checkout-field label {
-  font-weight: 600;
-  margin-bottom: 6px;
-}
+  .checkout-field label {
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
 
-.checkout-field input[type="text"],
-.checkout-field input[type="file"] {
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 15px;
-}
+  .checkout-field input[type="text"],
+  .checkout-field input[type="file"] {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 15px;
+  }
 
-.cash-note {
-  margin-top: 15px;
-  color: #444;
-}
-
+  .cash-note {
+    margin-top: 15px;
+    color: #444;
+  }
 
   /* Small screen optimizations */
   @media (max-width: 480px) {
@@ -4521,7 +4520,7 @@ a.btn-add {
 
 .pd-thumbs img {
   width: 100%;
-  height: 150px; 
+  height: 150px;
   border-radius: 12px;
   cursor: pointer;
   object-fit: cover;
@@ -4538,7 +4537,7 @@ a.btn-add {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: calc(150px * 3 + 30px); 
+  height: calc(150px * 3 + 30px);
 }
 
 .pd-main img {
@@ -4670,7 +4669,10 @@ a.btn-add {
 /* Grid Layout */
 .product-landing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* evenly sized */
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(200px, 1fr)
+  ); /* evenly sized */
   gap: 1.5rem;
   justify-content: center;
   align-items: stretch; /* ensures equal card height */
@@ -4728,8 +4730,6 @@ a.btn-add {
   font-size: 0.9rem;
 }
 
-
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -4786,7 +4786,8 @@ a.btn-add {
 }
 
 /* Buttons */
-.verify-btn, .cancel-btn {
+.verify-btn,
+.cancel-btn {
   flex: 1;
   padding: 10px;
   font-size: 14px;
@@ -4808,18 +4809,28 @@ a.btn-add {
 
 .filter-list a.underline {
   text-decoration: underline;
-  font-weight: 600; 
+  font-weight: 600;
 }
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes popIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .cart-popup {
@@ -4830,14 +4841,45 @@ a.btn-add {
   color: white;
   padding: 12px 20px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   z-index: 9999;
   animation: fadeInOut 3s forwards;
 }
 
+.btn.success {
+  background-color: #28a745; /* Green */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+.btn.success:hover {
+  background-color: #218838; /* Darker green */
+}
+
+.btn.success:active {
+  transform: scale(0.97);
+}
+
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(-10px); }
-  10% { opacity: 1; transform: translateY(0); }
-  90% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }

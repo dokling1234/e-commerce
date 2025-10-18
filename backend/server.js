@@ -29,6 +29,7 @@ const cartRoutes = require("./routes/cartRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const userMessagingRoutes = require("./routes/userMessagingRoutes");
 const activityRoutes = require("./routes/activityRoutes");
+const dailyCollectionRoutes = require("./routes/dailyCollectionRoutes");
 
 app.use("/api/admin/analytics", analyticsRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
@@ -39,6 +40,7 @@ app.use("/api/admin/announcements", announcementRoutes);
 app.use("/api/admin/staff", staffRoutes);
 app.use("/api/admin/inventory", inventoryRoutes);
 app.use("/api/admin/activity", activityRoutes);
+app.use("/api/admin/daily-collection", dailyCollectionRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/contact", userMessagingRoutes);
 
