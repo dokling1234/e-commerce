@@ -180,7 +180,6 @@ export default function Checkout() {
       );
 
       const data = await response.json();
-      console.log(data);
       if (response.ok && data.success) {
         alert("OTP verified! Redirecting to Thank You page...");
         setOtpModalOpen(false);

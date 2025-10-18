@@ -4382,6 +4382,22 @@ a.btn-add {
   transition: color 0.2s;
 }
 
+.modal-field input,
+.modal-field select,
+.modal-field textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  background-color: #fff;
+  width: 100%;
+}
+
+.modal-field textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
 .modal-close-btn:hover {
   color: #111827;
 }

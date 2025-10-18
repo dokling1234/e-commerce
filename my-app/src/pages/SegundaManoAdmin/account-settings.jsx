@@ -76,7 +76,6 @@ const AccountSettings = () => {
           timezone: data.timezone || "UTC-5 (Eastern Time)",
           notifications: data.notifications || "All notifications",
         });
-        console.log(adminInfo);
       } catch (err) {
         console.error(err);
       }

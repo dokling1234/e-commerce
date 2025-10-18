@@ -56,7 +56,6 @@ const AddOrder = () => {
     const selectedProduct = products.find((p) => p._id === formData.product);
 
     const price = selectedProduct ? selectedProduct.price : 0;
-    console.log(price);
     const maxQty = selectedProduct ? selectedProduct.quantity : 1;
 
     const calcSubtotal = price * (formData.quantity || 1);
@@ -141,10 +140,9 @@ const AddOrder = () => {
       paymentMethod: formData.paymentMethod,
       orderType: formData.shippingMethod,
       additionalNotes: formData.notes,
-      purchaseMethod: "walk-in",
+      purchaseMethod: "online",
     };
 
-    console.log(orderData); // Debug
 
     try {
       const res = await fetch(

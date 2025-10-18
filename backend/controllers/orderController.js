@@ -279,11 +279,9 @@ const updateOrderStatus = async (req, res) => {
 //pending => to receive
 const markOrderToReceive = async (req, res) => {
   try {
-    console.log("markOrderToReceive");
     const { id } = req.params;
     const { status, trackingNumber, paymentStatus } = req.body;
-    console.log(req.body);
-    console.log(req.params);
+
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -354,7 +352,6 @@ const markOrderToReceive = async (req, res) => {
 const markOrderReceived = async (req, res) => {
   try {
     const { id } = req.params;
-console.log(id)
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ message: "Order not found" });
 

@@ -70,11 +70,9 @@ const getAllAdmins = async (req, res) => {
 
 const getAdminInfo = async (req, res) => {
   try {
-    console.log("checssadk")
     const adminId = req.admin.id; 
     const admin = await AdminUser.findById(adminId).select("-password");
     if (!admin) return res.status(404).json({ message: "Admin not found" });
-console.log(admin)
     res.json(admin);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

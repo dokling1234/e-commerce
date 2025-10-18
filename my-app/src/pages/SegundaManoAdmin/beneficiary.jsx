@@ -40,7 +40,6 @@ const Beneficiary = () => {
       setLoading(true);
       setError(null);
       const response = await getAllBeneficiaries();
-      console.log(response.beneficiaries);
       setBeneficiaries(response.beneficiaries || []);
     } catch (err) {
       console.error("Failed to fetch beneficiaries:", err);
@@ -555,7 +554,7 @@ const Beneficiary = () => {
                     onSubmit={async (e) => {
                       e.preventDefault();
                       try {
-                        const payload = { ...editModal }; // send all editable fields
+                        const payload = { ...editModal };
                         await updateBeneficiaryDetails(editModal._id, payload);
                         alert("Beneficiary updated successfully!");
                         setEditModal(null);

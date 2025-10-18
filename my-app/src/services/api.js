@@ -91,7 +91,7 @@ export const updateBeneficiaryStatus = async (id, status) => {
 };
 
 export const updateBeneficiaryDetails = async (id, payload) => {
-  const response = await fetch(`/api/beneficiaries/${id}`, {
+  const response = await fetch(`http://localhost:5000/api/admin/beneficiaries/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

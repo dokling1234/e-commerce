@@ -183,9 +183,6 @@ const DataCollection = () => {
         branch: pastBranch,
         date: pastDate,
       });
-      console.log(pastDate)
-      console.log(pastBranch)
-      console.log(query)
 
       const res = await fetch(
         `http://localhost:5000/api/admin/daily-collection?${query}`
