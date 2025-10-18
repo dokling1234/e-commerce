@@ -3,30 +3,14 @@ const Beneficiary = require("../models/beneficiary");
 // Add 
 const addBeneficiary = async (req, res) => {
   try {
-    const { name, status, age } = req.body;
-
-    if (!name || !age) {
-      return res.status(400).json({ message: "Name and age are required" });
-    }
-
-    const existing = await Beneficiary.findOne({ name: name.trim() });
-    if (existing) {
-      return res.status(400).json({ message: "Beneficiary with this name already exists" });
-    }
-
-    const newBeneficiary = new Beneficiary({
-      name: name.trim(),
-      age,
-      status: status || "active"
-    });
-
+    const newBeneficiary = new Beneficiary(req.body); // save all fields from req.body
     await newBeneficiary.save();
-
     res.status(201).json({ message: "Beneficiary added successfully", beneficiary: newBeneficiary });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 
 const updateBeneficiaryStatus = async (req, res) => {
@@ -61,4 +45,33 @@ const getAllBeneficiaries = async (req, res) => {
   }
 };
 
-module.exports = { addBeneficiary, updateBeneficiaryStatus, getAllBeneficiaries };
+const editBeneficiaryDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Ensure age is number if provided
+    if (updates.age) updates.age = Number(updates.age);
+
+    const updatedBeneficiary = await Beneficiary.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedBeneficiary) {
+      return res.status(404).json({ message: "Beneficiary not found" });
+    }
+
+    res.status(200).json({
+      message: "Beneficiary updated successfully",
+      beneficiary: updatedBeneficiary,
+    });
+  } catch (err) {
+    console.error("Failed to update beneficiary:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
+module.exports = { addBeneficiary, updateBeneficiaryStatus, getAllBeneficiaries, editBeneficiaryDetails };

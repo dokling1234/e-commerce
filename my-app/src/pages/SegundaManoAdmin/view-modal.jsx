@@ -13,7 +13,7 @@ const ViewModal = ({ data, onClose }) => {
       }
       const res = await fetch(`http://localhost:5000/api/admin/orders/${data._id}/to-receive`, {
         method: "PUT",
-        headers: {
+        headers: { 
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },

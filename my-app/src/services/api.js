@@ -1,15 +1,16 @@
 // Base API URL - Updated to port 5000
-const API_BASE_URL= process.env.REACT_APP_API_URL_ADMIN || "http://localhost:5000/api/admin";
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL_ADMIN || "http://localhost:5000/api/admin";
 
 // Helper function for fetch requests
 const fetchAPI = async (endpoint, options = {}) => {
   try {
     // Get auth token from session storage if it exists
-    const token = sessionStorage.getItem('sg_admin_token');
+    const token = sessionStorage.getItem("sg_admin_token");
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
         "Content-Type": "application/json",
-        ...(token && { "Authorization": `Bearer ${token}` }),
+        ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
@@ -87,6 +88,16 @@ export const updateBeneficiaryStatus = async (id, status) => {
     method: "POST",
     body: JSON.stringify({ status }),
   });
+};
+
+export const updateBeneficiaryDetails = async (id, payload) => {
+  const response = await fetch(`/api/beneficiaries/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error("Failed to update beneficiary");
+  return await response.json();
 };
 
 // User Messaging API

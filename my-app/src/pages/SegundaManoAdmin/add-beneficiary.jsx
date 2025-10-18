@@ -39,7 +39,10 @@ const BeneficiaryForm = () => {
       let age = today.getFullYear() - dob.getFullYear();
       const monthDiff = today.getMonth() - dob.getMonth();
 
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < dob.getDate())
+      ) {
         age--;
       }
       setFormData((prev) => ({ ...prev, age }));
@@ -56,11 +59,25 @@ const BeneficiaryForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Map form fields to API expectations
+      // Send all formData fields as they match the backend schema
       const payload = {
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-        age: Number(formData.age) || undefined,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        dob: formData.dob,
+        age: Number(formData.age),
+        gender: formData.gender,
+        contactNumber: formData.contactNumber,
+        email: formData.email,
+        address: formData.address,
+        city: formData.city,
+        province: formData.province,
+        postalCode: formData.postalCode,
+        emergencyName: formData.emergencyName,
+        emergencyNumber: formData.emergencyNumber,
+        relationship: formData.relationship,
         status: formData.status || "active",
+        registrationDate: formData.registrationDate,
+        notes: formData.notes,
       };
 
       await addBeneficiary(payload);
@@ -329,7 +346,9 @@ const BeneficiaryForm = () => {
 
               {/* Notes */}
               <div className="form-group flex flex-col col-span-2">
-                <label className="form-label font-medium">Additional Notes</label>
+                <label className="form-label font-medium">
+                  Additional Notes
+                </label>
                 <textarea
                   name="notes"
                   value={formData.notes}

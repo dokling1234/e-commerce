@@ -17,6 +17,7 @@ import "../../css/adminsidebar.css";
 import {
   getAllBeneficiaries,
   updateBeneficiaryStatus,
+  updateBeneficiaryDetails
 } from "../../services/api";
 
 const Beneficiary = () => {
@@ -24,6 +25,8 @@ const Beneficiary = () => {
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewModal, setViewModal] = useState(null);
+  const [editModal, setEditModal] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const navigate = useNavigate();
@@ -37,6 +40,7 @@ const Beneficiary = () => {
       setLoading(true);
       setError(null);
       const response = await getAllBeneficiaries();
+      console.log(response.beneficiaries);
       setBeneficiaries(response.beneficiaries || []);
     } catch (err) {
       console.error("Failed to fetch beneficiaries:", err);
@@ -54,17 +58,17 @@ const Beneficiary = () => {
     try {
       await updateBeneficiaryStatus(id, newStatus);
       alert("Status updated successfully!");
-      fetchBeneficiaries(); 
+      fetchBeneficiaries();
     } catch (err) {
       console.error("Failed to update status:", err);
       alert("Failed to update status: " + err.message);
     }
   };
 
-  const filtered = beneficiaries.filter((b) =>
-    b.name?.toLowerCase().includes(search.toLowerCase())
-  );
-
+  const filtered = beneficiaries.filter((b) => {
+    const fullName = `${b.firstName} ${b.lastName}`.toLowerCase();
+    return fullName.includes(search.toLowerCase());
+  });
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const displayedRows = filtered.slice(
     (currentPage - 1) * itemsPerPage,
@@ -401,7 +405,9 @@ const Beneficiary = () => {
                       >
                         <td style={{ padding: "12px 16px" }}>{index + 1}</td>
                         <td style={{ padding: "12px 16px" }}>
-                          {b.name || "N/A"}
+                          {b.firstName && b.lastName
+                            ? `${b.firstName} ${b.lastName}`
+                            : "N/A"}
                         </td>
                         <td style={{ padding: "12px 16px" }}>
                           {dateRegistered}
@@ -449,9 +455,7 @@ const Beneficiary = () => {
                                 border: "none",
                                 cursor: "pointer",
                               }}
-                              onClick={() =>
-                                alert("View functionality - ID: " + b._id)
-                              }
+                              onClick={() => setViewModal(b)}
                               title="View"
                             >
                               <FaEye style={{ fontSize: "14px" }} />
@@ -465,9 +469,7 @@ const Beneficiary = () => {
                                 border: "none",
                                 cursor: "pointer",
                               }}
-                              onClick={() =>
-                                alert("Edit functionality - ID: " + b._id)
-                              }
+                              onClick={() => setEditModal(b)}
                               title="Edit"
                             >
                               <FaEdit style={{ fontSize: "14px" }} />
@@ -496,6 +498,140 @@ const Beneficiary = () => {
                 )}
               </tbody>
             </table>
+            {viewModal && (
+              <div className="modal-overlay">
+                <div className="modal-container">
+                  <button
+                    className="modal-close"
+                    onClick={() => setViewModal(null)}
+                  >
+                    ✕
+                  </button>
+
+                  <h2 className="modal-title">Beneficiary Details</h2>
+
+                  <div className="modal-field">
+                    <strong>Name:</strong>{" "}
+                    {viewModal.firstName && viewModal.lastName
+                      ? `${viewModal.firstName} ${viewModal.lastName}`
+                      : "N/A"}
+                  </div>
+                  <div className="modal-field">
+                    <strong>Age:</strong> {viewModal.age || "N/A"} years
+                  </div>
+                  <div className="modal-field">
+                    <strong>Status:</strong>{" "}
+                    {viewModal.status === "active" ? "Active" : "On hold"}
+                  </div>
+                  <div className="modal-field">
+                    <strong>Date Registered:</strong>{" "}
+                    {viewModal.createdAt
+                      ? new Date(viewModal.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "2-digit",
+                            day: "2-digit",
+                            year: "numeric",
+                          }
+                        )
+                      : "N/A"}
+                  </div>
+                </div>
+              </div>
+            )}
+            {editModal && (
+              <div className="modal-overlay">
+                <div className="modal-container">
+                  <button
+                    className="modal-close"
+                    onClick={() => setEditModal(null)}
+                  >
+                    ✕
+                  </button>
+
+                  <h2 className="modal-title">Edit Beneficiary</h2>
+
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      try {
+                        const payload = { ...editModal }; // send all editable fields
+                        await updateBeneficiaryDetails(editModal._id, payload);
+                        alert("Beneficiary updated successfully!");
+                        setEditModal(null);
+                        fetchBeneficiaries(); // refresh table
+                      } catch (err) {
+                        console.error(err);
+                        alert("Failed to update beneficiary");
+                      }
+                    }}
+                  >
+                    <div className="modal-field">
+                      <label>First Name</label>
+                      <input
+                        type="text"
+                        value={editModal.firstName}
+                        onChange={(e) =>
+                          setEditModal({
+                            ...editModal,
+                            firstName: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="modal-field">
+                      <label>Last Name</label>
+                      <input
+                        type="text"
+                        value={editModal.lastName}
+                        onChange={(e) =>
+                          setEditModal({
+                            ...editModal,
+                            lastName: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="modal-field">
+                      <label>Age</label>
+                      <input
+                        type="number"
+                        value={editModal.age}
+                        onChange={(e) =>
+                          setEditModal({
+                            ...editModal,
+                            age: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="modal-field">
+                      <label>Status</label>
+                      <select
+                        value={editModal.status}
+                        onChange={(e) =>
+                          setEditModal({ ...editModal, status: e.target.value })
+                        }
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="pending">Pending</option>
+                      </select>
+                    </div>
+
+                    {/* Add more fields here as needed */}
+                    <div style={{ marginTop: "12px", textAlign: "right" }}>
+                      <button type="submit" className="btn primary">
+                        Save Changes
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Pagination */}
