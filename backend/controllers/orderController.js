@@ -76,8 +76,7 @@ const createOrder = async (req, res) => {
       totalImpact.reliefPacks += product.impact.reliefPacks * quantity;
 
       item.unitPrice = product.price;
-        item.size = item.size || null; // <-- add this line to capture size
-
+      item.size = item.size || null; // <-- add this line to capture size
     }
 
     // --- Always save order first ---
@@ -399,7 +398,7 @@ const generateBundle = async (req, res) => {
     let query = { active: true };
     if (category && category !== "All") query.category = category;
 
-    const products = await Product.find(query);
+    const products = await Product.find({ isArchived: { $ne: true } });
 
     // Convert products to {title, price, score}
     const scoredProducts = products.map((p) => {
@@ -556,6 +555,19 @@ const checkEmailVerified = async (req, res) => {
   }
 };
 
+const toggleArchiveOrder = async (req, res) => {
+  console.log("toggle")
+  const { restore } = req.query; 
+  const isArchived = restore !== "true";
+
+  try {
+    await Order.findByIdAndUpdate(req.params.id, { isArchived });
+    res.json({ message: isArchived ? "Order archived" : "Order restored" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update Order" });
+  }
+};
+
 module.exports = {
   createManualOrder,
   createOrder,
@@ -568,4 +580,5 @@ module.exports = {
   verifyOrderOTP,
   getOrder,
   checkEmailVerified,
+  toggleArchiveOrder
 };

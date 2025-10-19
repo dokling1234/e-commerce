@@ -2,7 +2,7 @@ const router = require("express").Router();
 const {authMiddleware} = require("../middleware/authMiddleWare");
 const {logActivity} = require("../middleware/activityLogger");
 const upload = require("../middleware/upload.js");
-const { createOrder, getOrders, updateOrderStatus, deleteOrder, markOrderToReceive, markOrderReceived, generateBundle, verifyOrderOTP, createManualOrder, getOrder, checkEmailVerified  } = require("../controllers/orderController");
+const { createOrder, getOrders, updateOrderStatus, deleteOrder,toggleArchiveOrder, markOrderToReceive, markOrderReceived, generateBundle, verifyOrderOTP, createManualOrder, getOrder, checkEmailVerified  } = require("../controllers/orderController");
 
 //client
 router.post("/order", upload.single("proofOfPayment"), createOrder);
@@ -18,6 +18,7 @@ router.put("/:id/received", authMiddleware, logActivity("Received Order"), markO
 router.post("/bundle", generateBundle);
 router.delete("/:id", authMiddleware, logActivity("Delete Order"), deleteOrder);
 router.post("/manual-order", authMiddleware, logActivity("Create Manual Order"), createManualOrder);
+router.put("/:id/archive", authMiddleware, toggleArchiveOrder);
 
 
 module.exports = router;

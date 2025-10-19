@@ -80,11 +80,11 @@ const ViewModal = ({ data, onClose }) => {
             <>
               <p><strong>ID:</strong> {data.id}</p>
               <p><strong>AR Ref No.:</strong> {data.arRef}</p>
-              <p><strong>Name:</strong> {data.name}</p>
+              <p><strong>Name:</strong> {data.itemName}</p>
               <p><strong>Category:</strong> {data.category}</p>
               <p><strong>Size:</strong> {data.size}</p>
               <p><strong>Price:</strong> ₱{data.price}</p>
-              <p><strong>Status:</strong> {data.status}</p>
+              {/* <p><strong>Status:</strong> {data.status}</p> */}
               <p><strong>Description:</strong> {data.description}</p>
               
             </>

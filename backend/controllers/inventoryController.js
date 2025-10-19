@@ -54,9 +54,23 @@ const deleteInventory = async (req, res) => {
   }
 };
 
+const toggleArchiveInventory = async (req, res) => {
+  console.log("toggle")
+  const { restore } = req.query; // ?restore=true or ?restore=false
+  const isArchived = restore !== "true"; // default: archive
+
+  try {
+    await Inventory.findByIdAndUpdate(req.params.id, { isArchived });
+    res.json({ message: isArchived ? "Inventory archived" : "Inventory restored" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update product" });
+  }
+};
+
 module.exports = {
   getInventory,
   addInventory,
   updateInventory,
   deleteInventory,
+  toggleArchiveInventory
 };

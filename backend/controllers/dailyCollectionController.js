@@ -19,11 +19,11 @@ const saveDailyCollection = async (req, res) => {
 // Get All Records
 const getDailyCollections = async (req, res) => {
   try {
-    const { date, branch } = req.query; // /api/dailycollection?date=2025-12-31&branch=this
+    const { date, branch } = req.query; 
     const filter = {};
 
     if (date) {
-      filter.date = date; // match string directly
+      filter.date = date; 
     }
 
     if (branch) filter.branch = branch;
@@ -37,10 +37,6 @@ const getDailyCollections = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch records" });
   }
 };
-
-
-
-// GET /api/dailycollection?date=2025-12-31&branch=Main
 
 const getPastCollections = async (req, res) => {
   try {

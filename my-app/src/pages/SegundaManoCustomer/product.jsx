@@ -32,25 +32,21 @@ const Product = () => {
   useEffect(() => {
     const fetchProductAndCart = async () => {
       try {
-        // 1️⃣ Fetch product from backend
         const res = await fetch(
           `http://localhost:5000/api/admin/products/${productId}`
         );
         const data = await res.json();
 
-        // 2️⃣ Fetch user's cart session
         const cartRes = await fetch("http://localhost:5000/api/cart/get", {
           credentials: "include",
         });
         const cartData = await cartRes.json();
 
-        // 3️⃣ Check how many of this product are already in the cart
         const itemInCart = cartData.cart?.find(
           (item) => item.productId === productId
         );
         const reservedQty = itemInCart?.quantity || 0;
 
-        // 4️⃣ Subtract reservedQty from DB stock so UI reflects reality
         const adjustedProduct = {
           ...data,
           quantity: Math.max((data.quantity || 0) - reservedQty, 0),
@@ -66,7 +62,6 @@ const Product = () => {
     if (productId) fetchProductAndCart();
   }, [productId]);
 
-  // ✅ Image thumbnails + dynamic main image
   const images = [
     "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?q=80&w=800&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=800&auto=format&fit=crop",
@@ -99,7 +94,6 @@ const Product = () => {
       const data = await res.json();
 
       if (data.success) {
-        // ✅ Reduce quantity locally (UI updates instantly)
         setProducts((prevProducts) =>
           prevProducts.map((p) =>
             p._id === product._id

@@ -39,7 +39,6 @@ ChartJS.register(
   ArcElement
 );
 
-// ✅ Plugin to draw only 62% in the center of donut
 const centerTextPlugin = {
   id: "centerText",
   beforeDraw: (chart) => {

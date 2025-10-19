@@ -78,19 +78,16 @@ const Shop = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1️⃣ Fetch products from backend
         const res = await fetch(
           "http://localhost:5000/api/admin/products/customer"
         );
         const data = await res.json();
 
-        // 2️⃣ Fetch cart session
         const cartRes = await fetch("http://localhost:5000/api/cart/get", {
           credentials: "include",
         });
         const cartData = cartRes.ok ? await cartRes.json() : { cart: [] };
 
-        // 3️⃣ Adjust stock based on cart quantities
         const adjustedProducts = data.map((prod) => {
           const itemInCart = cartData.cart?.find(
             (item) => item.productId === prod._id

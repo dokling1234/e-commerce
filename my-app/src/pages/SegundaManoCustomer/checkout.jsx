@@ -134,7 +134,7 @@ export default function Checkout() {
         return;
       }
 
-      // 🔹 If OTP required
+      //  If OTP required
       if (data.requiresOtp) {
         alert("OTP sent to your email. Please verify.");
         setOrderId(data.orderId);
@@ -142,7 +142,7 @@ export default function Checkout() {
         return;
       }
 
-      // 🔹 If voucher issued
+      //  If voucher issued
       if (data.voucherCode) {
         await clearCart();
 
@@ -157,7 +157,7 @@ export default function Checkout() {
         return;
       }
 
-      // 🔹 Fallback
+      //  Fallback
       alert("Order created successfully!");
       navigate("/thankyou", { state: { email, orderId: data.orderId } });
     } catch (err) {

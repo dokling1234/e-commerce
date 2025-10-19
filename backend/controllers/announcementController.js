@@ -72,7 +72,7 @@ const toggleAnnouncementStatus = async (req, res) => {
 //get all
 const getAllAnnouncements = async (req, res) => {
   try {
-    const announcements = await Announcement.find().sort({ createdAt: -1 }); // latest first
+    const announcements = await Announcement.find().sort({ createdAt: -1 }); 
     res.json({ message: "All announcements", announcements });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

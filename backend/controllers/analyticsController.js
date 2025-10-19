@@ -1,7 +1,7 @@
 // controllers/adminAnalyticsController.js
 
 const Order = require("../models/Order");
-const Product = require("../models/product");
+const Product = require("../models/Product");
 
 const getAnalytics = async (req, res) => {
 

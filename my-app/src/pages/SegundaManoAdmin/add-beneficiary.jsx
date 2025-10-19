@@ -12,6 +12,7 @@ import {
   Activity,
   Settings,
   FilePen,
+  Users,
   Boxes,
 } from "lucide-react";
 
@@ -61,7 +62,10 @@ const BeneficiaryForm = () => {
       const today = new Date();
       let age = today.getFullYear() - dob.getFullYear();
       const monthDiff = today.getMonth() - dob.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < dob.getDate())
+      ) {
         age--;
       }
       setFormData((prev) => ({ ...prev, age }));
@@ -91,7 +95,6 @@ const BeneficiaryForm = () => {
       alert(err.message || "Failed to add beneficiary");
     }
   };
-
 
   return (
     <div className="admin-activity">
@@ -169,6 +172,14 @@ const BeneficiaryForm = () => {
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/staff-management"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Users size={18} /> Staff Management
+              </NavLink>
+            )}
             <NavLink
               to="/dailycollection"
               className={({ isActive }) => (isActive ? "active" : "")}

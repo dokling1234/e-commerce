@@ -17,6 +17,10 @@ import "../../css/adminsidebar.css";
 
 const AccountSettings = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const [adminInfo, setAdminInfo] = useState({
     fullName: "",
     email: "",
@@ -75,6 +79,9 @@ const AccountSettings = () => {
           language: data.language || "English",
           timezone: data.timezone || "UTC-5 (Eastern Time)",
           notifications: data.notifications || "All notifications",
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
         });
       } catch (err) {
         console.error(err);
@@ -86,6 +93,18 @@ const AccountSettings = () => {
 
   const handleSaveChanges = async () => {
     const token = sessionStorage.getItem("sg_admin_token");
+
+    const payload = { ...adminInfo };
+    if (
+      !adminInfo.currentPassword &&
+      !adminInfo.newPassword &&
+      !adminInfo.confirmPassword
+    ) {
+      delete payload.currentPassword;
+      delete payload.newPassword;
+      delete payload.confirmPassword;
+    }
+
     try {
       const res = await fetch("http://localhost:5000/api/admin/auth/update", {
         method: "PUT",
@@ -93,11 +112,18 @@ const AccountSettings = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(adminInfo),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error("Failed to update account");
       alert("Account updated successfully!");
+
+      setAdminInfo((prev) => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
     } catch (err) {
       console.error(err);
       alert("Failed to update account. Check console for details.");
@@ -329,6 +355,13 @@ const AccountSettings = () => {
                     type="password"
                     className="admin-settings-form-input"
                     placeholder="Enter current password"
+                    value={adminInfo.currentPassword}
+                    onChange={(e) =>
+                      setAdminInfo({
+                        ...adminInfo,
+                        currentPassword: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -340,6 +373,13 @@ const AccountSettings = () => {
                     type="password"
                     className="admin-settings-form-input"
                     placeholder="Enter new password"
+                    value={adminInfo.newPassword}
+                    onChange={(e) =>
+                      setAdminInfo({
+                        ...adminInfo,
+                        newPassword: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -351,6 +391,13 @@ const AccountSettings = () => {
                     type="password"
                     className="admin-settings-form-input"
                     placeholder="Confirm new password"
+                    value={adminInfo.confirmPassword}
+                    onChange={(e) =>
+                      setAdminInfo({
+                        ...adminInfo,
+                        confirmPassword: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -416,7 +463,10 @@ const AccountSettings = () => {
                 <button className="admin-settings-btn admin-settings-btn-secondary">
                   Cancel
                 </button>
-                <button className="admin-settings-btn admin-settings-btn-primary">
+                <button
+                  className="admin-settings-btn admin-settings-btn-primary"
+                  onClick={handleSaveChanges}
+                >
                   Save Changes
                 </button>
               </div>

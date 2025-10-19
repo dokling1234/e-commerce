@@ -23,8 +23,8 @@ const registerAdmin = async (req, res) => {
 // Login
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body; // Accept email instead of username
-    const user = await AdminUser.findOne({ email }); // Find by email
+    const { email, password } = req.body; 
+    const user = await AdminUser.findOne({ email }); 
 
     if (!user || !(await user.comparePassword(password))) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -82,13 +82,41 @@ const getAdminInfo = async (req, res) => {
 // Update admin info
 const updateAdminInfo = async (req, res) => {
   try {
-    const adminId = req.user.id;
-    const { fullName, email, phone, role, bio, language, timezone, notifications } = req.body;
+    const adminId = req.admin.id;
+    const { 
+      fullName, 
+      email, 
+      phone, 
+      role, 
+      bio, 
+      language, 
+      timezone, 
+      notifications,
+      currentPassword,   // <-- added
+      newPassword,       // <-- added
+      confirmPassword    // <-- added
+    } = req.body;
 
     const admin = await AdminUser.findById(adminId);
     if (!admin) return res.status(404).json({ message: "Admin not found" });
 
-    // Update fields
+    if (currentPassword || newPassword || confirmPassword) {
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({ message: "All password fields are required" });
+      }
+      if (!(await admin.comparePassword(currentPassword))) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: "New password and confirmation do not match" });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters" });
+      }
+
+      admin.password = newPassword; 
+    }
+
     admin.fullName = fullName || admin.fullName;
     admin.email = email || admin.email;
     admin.phone = phone || admin.phone;
@@ -99,11 +127,48 @@ const updateAdminInfo = async (req, res) => {
     admin.notifications = notifications || admin.notifications;
 
     await admin.save();
-    res.json({ message: "Admin updated successfully", admin });
+
+    res.json({ 
+      message: currentPassword ? "Admin info & password updated successfully" : "Admin updated successfully", 
+      admin 
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+// const changePassword = async (req, res) => {
+//   try {
+//     const adminId = req.admin?.id;
+//     const { currentPassword, newPassword, confirmPassword } = req.body;
+
+//     if (!currentPassword || !newPassword || !confirmPassword) {
+//       return res.status(400).json({ message: "All password fields are required" });
+//     }
+//     if (newPassword !== confirmPassword) {
+//       return res.status(400).json({ message: "New password and confirmation do not match" });
+//     }
+//     if (newPassword.length < 6) {
+//       return res.status(400).json({ message: "New password must be at least 6 characters" });
+//     }
+
+//     const admin = await AdminUser.findById(adminId);
+//     if (!admin) return res.status(404).json({ message: "Admin not found" });
+
+//     const match = await admin.comparePassword(currentPassword);
+//     if (!match) {
+//       return res.status(400).json({ message: "Current password is incorrect" });
+//     }
+
+//     admin.password = newPassword;
+//     await admin.save();
+
+//     res.json({ message: "Password changed successfully" });
+//   } catch (err) {
+//     console.error("changePassword error:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 
 
 module.exports = { registerAdmin, login, getAllAdmins, getAdminInfo, updateAdminInfo  };

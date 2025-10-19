@@ -7,7 +7,7 @@ const {
   getProducts,
   addProduct,
   updateProduct,
-  deleteProduct,
+  toggleArchiveProduct,
   getSingleProduct,
   getRandomProducts,
   getCustomerProducts
@@ -32,11 +32,11 @@ router.put(
   logActivity("Update Product"),
   updateProduct
 );
-router.delete(
-  "/:id",
+router.put(
+  "/:id/archive",
   authMiddleware,
-  logActivity("Delete Product"),
-  deleteProduct
+  toggleArchiveProduct
 );
+
 
 module.exports = router;

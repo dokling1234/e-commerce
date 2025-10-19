@@ -2,25 +2,21 @@ const mongoose = require("mongoose");
 
 const OrderSchema = new mongoose.Schema(
   {
-    // Existing buyer details
-    buyerName: String, // Can be generated as `${firstName} ${lastName}`
+    buyerName: String, 
     buyerEmail: String,
 
-    // ✅ Additional Customer Contact Info
     customer: {
       firstName: String,
       lastName: String,
       phone: String,
     },
 
-    // ✅ Order Type
     orderType: {
       type: String,
       enum: ["delivery", "pickup"],
       default: "delivery",
     },
 
-    // ✅ Address (only used if delivery)
     address: {
       street: String,
       city: String,
@@ -39,14 +35,12 @@ const OrderSchema = new mongoose.Schema(
 
     subtotal: Number,
 
-    // ✅ Payment Mode
     paymentMethod: {
       type: String,
       enum: ["gcash", "cash"],
       default: "gcash",
     },
 
-    // ✅ GCash details
     referenceNumber: String,
     proofOfPayment: String, // keep this as receipt URL or file path
 
@@ -84,7 +78,12 @@ const OrderSchema = new mongoose.Schema(
       default: "online",
     },
     additionalNotes: String,
-    size: String, 
+    size: String,
+
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   { timestamps: true }

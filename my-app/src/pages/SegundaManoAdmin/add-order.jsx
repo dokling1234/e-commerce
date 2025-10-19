@@ -8,6 +8,7 @@ import {
   Megaphone,
   Activity,
   Settings,
+  Users,
   FilePen,
   Boxes,
 } from "lucide-react";
@@ -133,7 +134,7 @@ const AddOrder = () => {
         {
           productId: formData.product,
           qty: formData.quantity,
-          unitPrice: selectedProduct.price, // ✅ NOW DEFINED
+          unitPrice: selectedProduct.price, 
         },
       ],
       subtotal: selectedProduct.price * formData.quantity,
@@ -240,6 +241,15 @@ const AddOrder = () => {
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
+
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/staff-management"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Users size={18} /> Staff Management
+              </NavLink>
+            )}
             <NavLink
               to="/dailycollection"
               className={({ isActive }) => (isActive ? "active" : "")}

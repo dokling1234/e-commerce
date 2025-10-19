@@ -9,6 +9,7 @@ import {
   Activity,
   Settings,
   FilePen,
+  Users,
   Boxes,
 } from "lucide-react";
 import "../../css/adminsidebar.css";
@@ -169,6 +170,15 @@ const AddInventory = () => {
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
+            
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/staff-management"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Users size={18} /> Staff Management
+              </NavLink>
+            )}
             <NavLink
               to="/dailycollection"
               className={({ isActive }) => (isActive ? "active" : "")}

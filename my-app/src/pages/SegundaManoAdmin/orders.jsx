@@ -24,11 +24,15 @@ const OrderManagement = () => {
   const [editData, setEditData] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [toggleItem, setToggleItem] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [filterStatus, setFilterStatus] = useState("all");
+
+
   const ordersPerPage = 10;
   const maxPageNumbers = 3;
   const navigate = useNavigate();
 
-  const [orders, setOrders] = useState([]);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -65,6 +69,9 @@ const OrderManagement = () => {
     const productId = o.productId?.toLowerCase() || "";
     const customer = o.customer?.toLowerCase() || "";
     const productName = o.title?.toLowerCase() || "";
+
+    if (filterStatus === "active" && o.isArchived) return false;
+    if (filterStatus === "archived" && !o.isArchived) return false;
 
     return (
       productId.includes(search.toLowerCase()) ||
@@ -118,27 +125,37 @@ const OrderManagement = () => {
 
   const handleView = (item) => setViewData(item);
   const handleEdit = (item) => setEditData(item);
-  const handleDelete = (item) => setDeleteItem(item);
+  const handleToggle = (item) => setToggleItem(item);
 
-  const confirmDelete = async (id) => {
+  const confirmToggleArchive = async (id, isArchived) => {
     try {
       const token = sessionStorage.getItem("sg_admin_token");
-      const res = await fetch(`http://localhost:5000/api/admin/orders/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(
+        `http://localhost:5000/api/admin/orders/${id}/archive?restore=${
+          isArchived ? "true" : "false"
+        }`,
+        
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+console.log(res)
+      if (!res.ok) throw new Error("Failed to update Inventory");
 
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message || "Failed to delete order");
+      // Update UI
+      setOrders((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, isArchived: !isArchived } : p))
+      );
 
-      alert("Order deleted successfully!");
-      setOrders((prev) => prev.filter((o) => o._id !== id));
-      setDeleteItem(null);
+      setToggleItem(null);
+      alert(isArchived ? "Order restored!" : "Order archived!");
+      setFilterStatus("active");
     } catch (err) {
-      console.error(err);
-      alert(err.message || "Error deleting order");
+      console.error("Error archiving/restoring product:", err);
+      alert("Failed to update Order.");
     }
   };
 
@@ -321,7 +338,15 @@ const OrderManagement = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="btn">Filter</button>
+            <select
+              className="btn"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>{" "}
             <button className="btn" onClick={exportCSV}>
               Export CSV
             </button>
@@ -378,7 +403,7 @@ const OrderManagement = () => {
                       <ActionButtons
                         onView={() => handleView(o)}
                         onEdit={() => handleEdit(o)}
-                        onDelete={() => handleDelete(o)}
+                        onDelete={() => handleToggle(o)}
                       />
                     </td>
                   </tr>
@@ -555,26 +580,36 @@ const OrderManagement = () => {
           )}
 
           {/* Delete Confirmation */}
-          {deleteItem && (
+          {toggleItem && (
             <div className="modal-overlay">
               <div className="modal-box max-w-md text-center">
-                <h2 className="text-lg font-semibold mb-3">Confirm Delete</h2>
+                <h2 className="text-lg font-semibold mb-3">
+                  Confirm {toggleItem.isArchived ? "Restore" : "Archive"}
+                </h2>
                 <p>
-                  Are you sure you want to delete order{" "}
-                  <strong>{deleteItem._id}</strong>?
+                  Are you sure you want to{" "}
+                  <strong>
+                    {toggleItem.isArchived ? "restore" : "archive"}
+                  </strong>{" "}
+                  (AR Ref: {toggleItem.arRef})?
                 </p>
                 <div className="flex justify-center gap-3 mt-6">
                   <button
                     className="btn border"
-                    onClick={() => setDeleteItem(null)}
+                    onClick={() => setToggleItem(null)}
                   >
                     Cancel
                   </button>
                   <button
                     className="btn danger"
-                    onClick={() => confirmDelete(deleteItem._id)}
+                    onClick={() =>
+                      confirmToggleArchive(
+                        toggleItem._id,
+                        toggleItem.isArchived
+                      )
+                    }
                   >
-                    Delete
+                    {toggleItem.isArchived ? "Restore" : "Archive"}
                   </button>
                 </div>
               </div>

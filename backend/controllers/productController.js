@@ -9,7 +9,7 @@ const getProducts = async (req, res) => {
 //get for customer - only available stock
 const getCustomerProducts = async (req, res) => {
   try {
-    const products = await Product.find({ quantity: { $gt: 0 } });
+    const products = await Product.find({ quantity: { $gt: 0 } } && { isArchived: { $ne: true } } );
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -57,12 +57,18 @@ const updateProduct = async (req, res) => {
   if (!updated) return res.status(404).json({ message: "Product not found" });
   res.json(updated);
 };
-//deleteProduct
-const deleteProduct = async (req, res) => {
-  await Product.findByIdAndDelete(req.params.id);
-  res.json({ message: "Product deleted" });
-};
+//restoreProduct
+const toggleArchiveProduct = async (req, res) => {
+  const { restore } = req.query; 
+  const isArchived = restore !== "true"; 
 
+  try {
+    await Product.findByIdAndUpdate(req.params.id, { isArchived });
+    res.json({ message: isArchived ? "Product archived" : "Product restored" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update product" });
+  }
+};
 
 const getSingleProduct =  async (req, res) => {
   try {
@@ -102,4 +108,4 @@ const getRandomProducts = async (req, res) => {
   }
 };
 
-module.exports = { getProducts, addProduct, updateProduct, deleteProduct, getSingleProduct, getRandomProducts, getCustomerProducts };
+module.exports = { getProducts, addProduct, updateProduct, toggleArchiveProduct, getSingleProduct, getRandomProducts, getCustomerProducts };

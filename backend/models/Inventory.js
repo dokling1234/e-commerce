@@ -6,7 +6,11 @@ const inventorySchema = new mongoose.Schema({
   price: Number,
   quantity: Number,
   category: String,
-  arRef: String
+  arRef: String,
+  isArchived: {
+      type: Boolean,
+      default: false,
+    },
 });
 
 module.exports = mongoose.model("Inventory", inventorySchema);

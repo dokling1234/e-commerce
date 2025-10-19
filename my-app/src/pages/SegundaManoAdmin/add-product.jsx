@@ -11,6 +11,7 @@ import {
   Upload,
   Trash2,
   FilePen,
+  Users,
   Boxes,
 } from "lucide-react";
 import "../../css/styles.css";
@@ -215,6 +216,14 @@ const AddProduct = () => {
             </NavLink>
 
             <div className="admin-section-title">TOOLS</div>
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/staff-management"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Users size={18} /> Staff Management
+              </NavLink>
+            )}  
             <NavLink
               to="/dailycollection"
               className={({ isActive }) => (isActive ? "active" : "")}

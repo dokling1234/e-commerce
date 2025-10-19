@@ -22,8 +22,10 @@ const AdminProduct = () => {
   const [search, setSearch] = useState("");
   const [viewData, setViewData] = useState(null);
   const [editData, setEditData] = useState(null);
-  const [deleteItem, setDeleteItem] = useState(null);
+  const [toggleItem, setToggleItem] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [filterStatus, setFilterStatus] = useState("all");
+
   const itemsPerPage = 10;
   const navigate = useNavigate();
 
@@ -66,16 +68,23 @@ const AdminProduct = () => {
   }, []);
 
   const filtered = products.filter((p) => {
+    // Search filter
     const q = search.trim().toLowerCase();
-    if (!q) return true;
-
-    return (
+    const matchesSearch =
+      !q ||
       (p.arRef || "").toLowerCase().includes(q) ||
       (p.itemName || "").toLowerCase().includes(q) ||
       (p.category || "").toLowerCase().includes(q) ||
       (p.size || "").toLowerCase().includes(q) ||
-      (p.quantity || "").toLowerCase().includes(q)
-    );
+      String(p.quantity || "")
+        .toLowerCase()
+        .includes(q);
+
+    // Archive filter
+    if (filterStatus === "active" && p.isArchived) return false;
+    if (filterStatus === "archived" && !p.isArchived) return false;
+
+    return matchesSearch;
   });
 
   const exportCSV = () => {
@@ -127,31 +136,36 @@ const AdminProduct = () => {
 
   const handleView = (item) => setViewData(item);
   const handleEdit = (item) => setEditData(item);
-  const handleDelete = (item) => setDeleteItem(item);
+  const handleToggle = (item) => setToggleItem(item);
 
-  const confirmDelete = async (id) => {
+  const confirmToggleArchive = async (id, isArchived) => {
     try {
       const token = sessionStorage.getItem("sg_admin_token");
 
       const res = await fetch(
-        `http://localhost:5000/api/admin/products/${id}`,
+        `http://localhost:5000/api/admin/products/${id}/archive?restore=${
+          isArchived ? "true" : "false"
+        }`,
         {
-          method: "DELETE",
+          method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
 
-      if (!res.ok) throw new Error("Failed to delete product");
+      if (!res.ok) throw new Error("Failed to update product");
 
-      // Remove from UI
-      setProducts((prev) => prev.filter((p) => p._id !== id));
-      setDeleteItem(null);
-      alert("Product deleted successfully!");
+      // Update UI
+      setProducts((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, isArchived: !isArchived } : p))
+      );
+
+      setToggleItem(null);
+      alert(isArchived ? "Product restored!" : "Product archived!");
     } catch (err) {
-      console.error("Error deleting product:", err);
-      alert("Failed to delete product.");
+      console.error("Error archiving/restoring product:", err);
+      alert("Failed to update product.");
     }
   };
 
@@ -292,7 +306,15 @@ const AdminProduct = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="btn">Filter</button>
+            <select
+              className="btn"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>{" "}
             <button className="btn" onClick={exportCSV}>
               Export CSV
             </button>
@@ -335,7 +357,7 @@ const AdminProduct = () => {
                       <ActionButtons
                         onView={() => handleView(p)}
                         onEdit={() => handleEdit(p)}
-                        onDelete={() => handleDelete(p)}
+                        onDelete={() => handleToggle(p)}
                       />
                     </td>
                   </tr>
@@ -472,27 +494,36 @@ const AdminProduct = () => {
           )}
 
           {/* Delete Confirmation Modal */}
-          {deleteItem && (
+          {toggleItem && (
             <div className="modal-overlay">
               <div className="modal-box max-w-md text-center">
-                <h2 className="text-lg font-semibold mb-3">Confirm Delete</h2>
+                <h2 className="text-lg font-semibold mb-3">
+                  Confirm {toggleItem.isArchived ? "Restore" : "Archive"}
+                </h2>
                 <p>
-                  Are you sure you want to delete{" "}
-                  <strong>{deleteItem.name}</strong> (AR Ref: {deleteItem.arRef}
-                  )?
+                  Are you sure you want to{" "}
+                  <strong>
+                    {toggleItem.isArchived ? "restore" : "archive"}
+                  </strong>{" "}
+                  (AR Ref: {toggleItem.arRef})?
                 </p>
                 <div className="flex justify-center gap-3 mt-6">
                   <button
                     className="btn border"
-                    onClick={() => setDeleteItem(null)}
+                    onClick={() => setToggleItem(null)}
                   >
                     Cancel
                   </button>
                   <button
                     className="btn danger"
-                    onClick={() => confirmDelete(deleteItem._id)}
+                    onClick={() =>
+                      confirmToggleArchive(
+                        toggleItem._id,
+                        toggleItem.isArchived
+                      )
+                    }
                   >
-                    Delete
+                    {toggleItem.isArchived ? "Restore" : "Archive"}
                   </button>
                 </div>
               </div>
