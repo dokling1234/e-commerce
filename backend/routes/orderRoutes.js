@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const {authMiddleware} = require("../middleware/authMiddleWare");
-const logActivity = require("../middleware/activityLogger");
+const {logActivity} = require("../middleware/activityLogger");
 const upload = require("../middleware/upload.js");
 const { createOrder, getOrders, updateOrderStatus, deleteOrder, markOrderToReceive, markOrderReceived, generateBundle, verifyOrderOTP, createManualOrder, getOrder, checkEmailVerified  } = require("../controllers/orderController");
 

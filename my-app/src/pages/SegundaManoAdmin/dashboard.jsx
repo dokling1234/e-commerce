@@ -402,7 +402,9 @@ export default function Dashboard() {
       <div className="admin-content">
         <div className="admin-page-header">
           <div className="admin-header-content">
-            <h1 className="admin-h1">Welcome, Admin!</h1>
+            <h1 className="admin-h1">
+              Welcome, {userRole === "superadmin" ? "Admin" : "Staff"}!
+            </h1>{" "}
           </div>
         </div>
 

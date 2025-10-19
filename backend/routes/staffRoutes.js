@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { authMiddleware, requireSuperAdmin } = require("../middleware/authMiddleWare");
-const logActivity = require("../middleware/activityLogger");
+const {logActivity} = require("../middleware/activityLogger");
 const {
   createStaff,
   getAllStaff,

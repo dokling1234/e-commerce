@@ -117,6 +117,9 @@ const Product = () => {
     }
   };
 
+  const [selectedSize, setSelectedSize] = useState(
+    product?.size || product?.sizes?.[0] || ""
+  );
   return (
     <div>
       {cartMessage && <div className="cart-popup">{cartMessage}</div>}
@@ -205,18 +208,27 @@ const Product = () => {
           <div className="pd-qty">
             <strong>Quantity Available:</strong> {product?.quantity ?? 0}
           </div>
-          <div className="pd-field">
-            <label>Size</label>
-            <select className="pd-select">
-              {product?.size ? (
-                <option>{product.size}</option> // Only one size available
-              ) : product?.sizes?.length ? (
-                product.sizes.map((size, i) => <option key={i}>{size}</option>)
-              ) : (
-                <option disabled>No size available</option>
-              )}
-            </select>
-          </div>
+          {/* Size Selector - only for specific categories */}
+          {["clothing", "shoes"].includes(product?.category?.toLowerCase()) && (
+            <div className="pd-field">
+              <label>Size</label>
+              <select
+                className="pd-select"
+                value={selectedSize}
+                onChange={(e) => setSelectedSize(e.target.value)}
+              >
+                {product?.size ? (
+                  <option>{product.size}</option>
+                ) : product?.sizes?.length ? (
+                  product.sizes.map((size, i) => (
+                    <option key={i}>{size}</option>
+                  ))
+                ) : (
+                  <option disabled>No size available</option>
+                )}
+              </select>
+            </div>
+          )}
 
           <button
             className="pd-btn"

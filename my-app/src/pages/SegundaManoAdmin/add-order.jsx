@@ -143,7 +143,6 @@ const AddOrder = () => {
       purchaseMethod: "online",
     };
 
-
     try {
       const res = await fetch(
         "http://localhost:5000/api/admin/orders/manual-order",
@@ -247,12 +246,14 @@ const AddOrder = () => {
             >
               <FilePen size={18} /> Daily Collection
             </NavLink>
-            <NavLink
-              to="/activity"
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              <Activity size={18} /> Activity Log
-            </NavLink>
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/activity"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Activity size={18} /> Activity Log
+              </NavLink>
+            )}
             <NavLink
               to="/account-settings"
               className={({ isActive }) => (isActive ? "active" : "")}

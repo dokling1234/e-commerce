@@ -4897,6 +4897,18 @@ a.btn-add {
   transform: scale(0.97);
 }
 
+.summary-checkout.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.checkout-place-order:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 @keyframes fadeInOut {
   0% {
     opacity: 0;

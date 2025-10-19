@@ -245,8 +245,16 @@ const MyCart = () => {
                   <strong>₱{subtotal.toFixed(2)}</strong>
                 </span>
               </div>
-              <Link to="/checkout" className="summary-checkout">
-                Proceed to checkout
+              <Link
+                to={cartItems.length > 0 ? "/checkout" : "#"}
+                className={`summary-checkout ${
+                  cartItems.length === 0 ? "disabled" : ""
+                }`}
+                onClick={(e) => {
+                  if (cartItems.length === 0) e.preventDefault();
+                }}
+              >
+                {cartItems.length > 0 ? "Proceed to checkout" : "Cart is empty"}
               </Link>
             </div>
           </aside>

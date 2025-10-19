@@ -221,12 +221,14 @@ const AddProduct = () => {
             >
               <FilePen size={18} /> Daily Collection
             </NavLink>
-            <NavLink
-              to="/activity"
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              <Activity size={18} /> Activity Log
-            </NavLink>
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/activity"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Activity size={18} /> Activity Log
+              </NavLink>
+            )}
             <NavLink
               to="/account-settings"
               className={({ isActive }) => (isActive ? "active" : "")}
@@ -302,23 +304,25 @@ const AddProduct = () => {
                           <option value="Outdoors">Outdoors</option>
                         </select>
                       </div>
-                      <div>
-                        <label className="form-label">Size</label>
-                        <select
-                          value={product.size || "M"}
-                          onChange={(e) =>
-                            setProduct({ ...product, size: e.target.value })
-                          }
-                          className="form-select"
-                          required
-                        >
-                          <option value="XS">XS</option>
-                          <option value="S">S</option>
-                          <option value="M">M</option>
-                          <option value="L">L</option>
-                          <option value="XL">XL</option>
-                        </select>
-                      </div>
+                      {["Clothing", "Shoes"].includes(product.category) && (
+                        <div>
+                          <label className="form-label">Size</label>
+                          <select
+                            value={product.size || "M"}
+                            onChange={(e) =>
+                              setProduct({ ...product, size: e.target.value })
+                            }
+                            className="form-select"
+                            required
+                          >
+                            <option value="XS">XS</option>
+                            <option value="S">S</option>
+                            <option value="M">M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mt-4">

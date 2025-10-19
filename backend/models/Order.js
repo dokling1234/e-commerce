@@ -3,13 +3,13 @@ const mongoose = require("mongoose");
 const OrderSchema = new mongoose.Schema(
   {
     // Existing buyer details
-    buyerName: String,  // Can be generated as `${firstName} ${lastName}`
+    buyerName: String, // Can be generated as `${firstName} ${lastName}`
     buyerEmail: String,
 
     // ✅ Additional Customer Contact Info
     customer: {
       firstName: String,
-      lastName: String, 
+      lastName: String,
       phone: String,
     },
 
@@ -83,8 +83,10 @@ const OrderSchema = new mongoose.Schema(
       enum: ["online", "walk-in"],
       default: "online",
     },
-    additionalNotes: String
+    additionalNotes: String,
+    size: String, 
   },
+
   { timestamps: true }
 );
 

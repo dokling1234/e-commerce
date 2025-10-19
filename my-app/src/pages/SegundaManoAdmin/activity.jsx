@@ -18,6 +18,8 @@ import "../../css/adminsidebar.css";
 const ActivityLog = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rows, setRows] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -33,6 +35,7 @@ const ActivityLog = () => {
   }, []);
 
   useEffect(() => {
+    console.log("activity");
     fetch("http://localhost:5000/api/admin/activity", {
       headers: {
         Authorization: `Bearer ${sessionStorage.getItem("sg_admin_token")}`,
@@ -86,6 +89,16 @@ const ActivityLog = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const indexOfLastRow = currentPage * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = rows.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.ceil(rows.length / rowsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber < 1 || pageNumber > totalPages) return;
+    setCurrentPage(pageNumber);
   };
 
   return (
@@ -244,7 +257,7 @@ const ActivityLog = () => {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, i) => (
+                {currentRows.map((row, i) => (
                   <tr key={i}>
                     <td>
                       <input type="checkbox" />
@@ -254,39 +267,62 @@ const ActivityLog = () => {
                     <td>{row.adminName}</td>
                     <td>{row.action}</td>
                     <td>
-                      {row.details ? (
-                        <>
-                          {row.details.body &&
-                            Object.keys(row.details.body).length > 0 && (
-                              <div>
-                                <strong>Body:</strong>{" "}
-                                {Object.entries(row.details.body).map(
-                                  ([key, value]) => (
-                                    <div key={key}>
-                                      {key}: {value.toString()}
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            )}
-                          {row.details.params &&
-                            Object.keys(row.details.params).length > 0 && (
-                              <div>
-                                <strong>Params:</strong>{" "}
-                                {Object.entries(row.details.params).map(
-                                  ([key, value]) => (
-                                    <div key={key}>
-                                      {key}: {value.toString()}
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            )}
-                        </>
-                      ) : (
-                        <span>No details</span>
-                      )}
-                    </td>{" "}
+                      <div
+                        style={{
+                          maxWidth: "250px", // adjust as needed
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        title={
+                          row.details
+                            ? `${
+                                row.details.body
+                                  ? JSON.stringify(row.details.body)
+                                  : ""
+                              } ${
+                                row.details.params
+                                  ? JSON.stringify(row.details.params)
+                                  : ""
+                              }`
+                            : ""
+                        }
+                      >
+                        {row.details ? (
+                          <>
+                            {row.details.body &&
+                              Object.keys(row.details.body).length > 0 && (
+                                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                  {Object.entries(row.details.body).map(
+                                    ([key, value]) => (
+                                      <li key={key}>
+                                        <strong>{key}:</strong>{" "}
+                                        {value != null ? value.toString() : ""}
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              )}
+                            {row.details.params &&
+                              Object.keys(row.details.params).length > 0 && (
+                                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                  {Object.entries(row.details.params).map(
+                                    ([key, value]) => (
+                                      <li key={key}>
+                                        <strong>{key}:</strong>{" "}
+                                        {value != null ? value.toString() : ""}
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              )}
+                          </>
+                        ) : (
+                          <span>No details</span>
+                        )}
+                      </div>
+                    </td>
+
                     <td>
                       <span className="link">View</span>
                     </td>
@@ -294,6 +330,37 @@ const ActivityLog = () => {
                 ))}
               </tbody>
             </table>
+            <div className="pagination">
+              <button
+                className="page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => prev - 1)}
+              >
+                ‹
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (num) => (
+                  <button
+                    key={num}
+                    className={`page-btn ${
+                      num === currentPage ? "active" : ""
+                    }`}
+                    onClick={() => setCurrentPage(num)}
+                  >
+                    {num}
+                  </button>
+                )
+              )}
+
+              <button
+                className="page-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((prev) => prev + 1)}
+              >
+                ›
+              </button>
+            </div>
           </div>
         </main>
       </div>

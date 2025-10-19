@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const logActivity = require("../middleware/activityLogger");
+const {logActivity} = require("../middleware/activityLogger");
 const { authMiddleware } = require("../middleware/authMiddleWare");
 const {deleteAnnouncement, addAnnouncement, toggleAnnouncementStatus, getAllAnnouncements  } = require("../controllers/announcementController");
 const upload = require("../middleware/upload.js");

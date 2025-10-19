@@ -41,6 +41,12 @@ const AddInventory = () => {
     description: "",
   });
 
+  useEffect(() => {
+    if (!["Clothing", "Shoes"].includes(formData.category)) {
+      setFormData((prev) => ({ ...prev, size: "" }));
+    }
+  }, [formData.category]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -169,12 +175,14 @@ const AddInventory = () => {
             >
               <FilePen size={18} /> Daily Collection
             </NavLink>
-            <NavLink
-              to="/activity"
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              <Activity size={18} /> Activity Log
-            </NavLink>
+            {sessionStorage.getItem("sg_admin_role") === "superadmin" && (
+              <NavLink
+                to="/activity"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Activity size={18} /> Activity Log
+              </NavLink>
+            )}
             <NavLink
               to="/account-settings"
               className={({ isActive }) => (isActive ? "active" : "")}
@@ -236,17 +244,19 @@ const AddInventory = () => {
                       </select>
                     </div>
 
-                    <div className="form-group flex flex-col">
-                      <label className="form-label">Size</label>
-                      <input
-                        type="text"
-                        name="size"
-                        value={formData.size}
-                        onChange={handleChange}
-                        placeholder="Enter item size"
-                        className="form-input"
-                      />
-                    </div>
+                    {["Clothing", "Shoes"].includes(formData.category) && (
+                      <div className="form-group flex flex-col">
+                        <label className="form-label">Size</label>
+                        <input
+                          type="text"
+                          name="size"
+                          value={formData.size}
+                          onChange={handleChange}
+                          placeholder="Enter item size"
+                          className="form-input"
+                        />
+                      </div>
+                    )}
 
                     <div className="form-group flex flex-col">
                       <label className="form-label">Price</label>
