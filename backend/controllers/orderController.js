@@ -111,7 +111,7 @@ const createOrder = async (req, res) => {
       const htmlContent = VERIFY_TEMPLATE.replace(
         "{{email}}",
         buyerEmail
-      ).replace("{{otp}}", otp);
+      ).replace("{{otp}}", otp).replace("{{logoUrl}}", "https://caritasmanila.org.ph/wp-content/uploads/2022/08/CM-logo-3-Red-Background.png");
 
       await transporter.sendMail({
         from: process.env.SENDER_EMAIL,
@@ -144,7 +144,7 @@ const createOrder = async (req, res) => {
     const voucherEmail = VOUCHER_TEMPLATE.replace(
       "{{email}}",
       buyerEmail
-    ).replace("{{otp}}", voucherCode);
+    ).replace("{{otp}}", voucherCode).replace("{{logoUrl}}", "https://caritasmanila.org.ph/wp-content/uploads/2022/08/CM-logo-3-Red-Background.png");
 
     await transporter.sendMail({
       from: process.env.SENDER_EMAIL,
@@ -212,7 +212,7 @@ const verifyOrderOTP = async (req, res) => {
       const htmlContent = VOUCHER_TEMPLATE.replace(
         "{{email}}",
         order.buyerEmail
-      ).replace("{{otp}}", voucherCode);
+      ).replace("{{otp}}", voucherCode).replace("{{logoUrl}}", "https://caritasmanila.org.ph/wp-content/uploads/2022/08/CM-logo-3-Red-Background.png");
 
       await transporter.sendMail({
         from: process.env.SENDER_EMAIL,
@@ -322,7 +322,7 @@ const markOrderToReceive = async (req, res) => {
       const htmlContent = VOUCHER_TEMPLATE.replace(
         "{{email}}",
         order.buyerEmail
-      ).replace("{{otp}}", voucherCode);
+      ).replace("{{otp}}", voucherCode).replace("{{logoUrl}}", "https://caritasmanila.org.ph/wp-content/uploads/2022/08/CM-logo-3-Red-Background.png");
 
       await transporter.sendMail({
         from: process.env.SENDER_EMAIL,
